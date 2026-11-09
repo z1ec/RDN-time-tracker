@@ -44,8 +44,13 @@ jobs:
       - name: Restore (locked mode)
         run: dotnet restore WorkTimeTracker.slnx --locked-mode
 
-      - name: Тесты
-        run: dotnet test WorkTimeTracker.slnx -c Release --no-restore --filter "Category!=Screenshots"
+      - name: Тесты (Windows)
+        run: dotnet test WorkTimeTracker.slnx -c Release --no-restore --filter "Category!=Screenshots" --logger trx --results-directory TestResults
+
+      - name: Упавшие тесты → аннотации
+        if: failure()
+        shell: bash
+        run: python scripts/annotate_test_failures.py TestResults
 
       - name: Публикация win-x64 single-file
         shell: bash

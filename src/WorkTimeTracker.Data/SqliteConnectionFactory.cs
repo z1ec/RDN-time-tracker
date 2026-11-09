@@ -22,11 +22,21 @@ public sealed class SqliteConnectionFactory(string databasePath)
     public SqliteConnection Open()
     {
         var connection = new SqliteConnection(ConnectionString);
-        connection.Open();
-        using var command = connection.CreateCommand();
-        command.CommandText = "PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000;";
-        command.ExecuteNonQuery();
-        return connection;
+        try
+        {
+            connection.Open();
+            using var command = connection.CreateCommand();
+            command.CommandText = "PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000;";
+            command.ExecuteNonQuery();
+            return connection;
+        }
+        catch
+        {
+            // Повреждённый файл: соединение нужно закрыть, иначе на Windows файл останется заблокированным.
+            connection.Dispose();
+            SqliteConnection.ClearPool(connection);
+            throw;
+        }
     }
 
     /// <summary>Выполняет работу с БД в пуле потоков, чтобы не блокировать UI.</summary>

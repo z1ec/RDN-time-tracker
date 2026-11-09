@@ -28,7 +28,14 @@ public class SelfTestTests
         finally
         {
             Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
-            Directory.Delete(dir, recursive: true);
+            try
+            {
+                Directory.Delete(dir, recursive: true);
+            }
+            catch (IOException)
+            {
+                // На Windows файл может быть ещё занят — временную папку не жалко.
+            }
         }
     }
 }
