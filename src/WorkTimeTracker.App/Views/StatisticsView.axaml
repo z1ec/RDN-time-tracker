@@ -1,0 +1,110 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:WorkTimeTracker.App.ViewModels"
+             xmlns:controls="using:WorkTimeTracker.App.Controls"
+             x:Class="WorkTimeTracker.App.Views.StatisticsView"
+             x:DataType="vm:StatisticsViewModel">
+  <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+    <StackPanel Margin="24,20,24,24" Spacing="16">
+      <!-- Заголовок и выбор периода (F3.1) -->
+      <Grid ColumnDefinitions="Auto,*,Auto">
+        <TextBlock Classes="h1" Text="Статистика" VerticalAlignment="Center" />
+        <ListBox Grid.Column="2" Classes="segmented" ItemsSource="{Binding Kinds}" SelectedIndex="{Binding SelectedKindIndex}"
+                 AutomationProperties.Name="Вид периода">
+          <ListBox.ItemsPanel>
+            <ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="2" /></ItemsPanelTemplate>
+          </ListBox.ItemsPanel>
+        </ListBox>
+      </Grid>
+
+      <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto" ColumnSpacing="8">
+        <Button Classes="icon" Command="{Binding PreviousCommand}" ToolTip.Tip="Предыдущий период" AutomationProperties.Name="Предыдущий период">
+          <PathIcon Data="{StaticResource IconChevronLeft}" />
+        </Button>
+        <Button Grid.Column="1" Classes="icon" Command="{Binding NextCommand}" ToolTip.Tip="Следующий период" AutomationProperties.Name="Следующий период">
+          <PathIcon Data="{StaticResource IconChevronRight}" />
+        </Button>
+        <TextBlock Grid.Column="2" Classes="h2" FontSize="18" Text="{Binding PeriodLabel}" VerticalAlignment="Center" Margin="8,0"
+                   AutomationProperties.Name="Период" />
+        <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsCustom}" HorizontalAlignment="Left">
+          <CalendarDatePicker SelectedDate="{Binding CustomStart}" DisplayDateEnd="{Binding MaxDate}" Width="140"
+                              SelectedDateFormat="Custom" CustomDateFormatString="dd.MM.yyyy" AutomationProperties.Name="Начало периода" />
+          <TextBlock Text="—" VerticalAlignment="Center" />
+          <CalendarDatePicker SelectedDate="{Binding CustomEnd}" DisplayDateEnd="{Binding MaxDate}" Width="140"
+                              SelectedDateFormat="Custom" CustomDateFormatString="dd.MM.yyyy" AutomationProperties.Name="Конец периода" />
+        </StackPanel>
+        <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="8">
+          <Button Command="{Binding TodayCommand}" AutomationProperties.Name="Сегодня">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <PathIcon Data="{StaticResource IconCalendarToday}" />
+              <TextBlock Text="Сегодня" />
+            </StackPanel>
+          </Button>
+          <Button Command="{Binding ExportCsvCommand}" AutomationProperties.Name="Экспорт CSV" ToolTip.Tip="Экспорт записей периода в CSV">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <PathIcon Data="{StaticResource IconArrowDownload}" />
+              <TextBlock Text="CSV" />
+            </StackPanel>
+          </Button>
+        </StackPanel>
+      </Grid>
+
+      <TextBlock Classes="subtle small" Text="{Binding StatusText}" IsVisible="{Binding StatusText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+
+      <!-- KPI (F3.2) -->
+      <ItemsControl ItemsSource="{Binding Kpis}" AutomationProperties.Name="Показатели">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate><UniformGrid Columns="4" /></ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="vm:KpiCard">
+            <Border Classes="card" Margin="0,0,12,12" Padding="16,14" AutomationProperties.Name="{Binding Title}">
+              <StackPanel Spacing="4">
+                <TextBlock Classes="subtle small" Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+                <TextBlock Classes="kpi" Text="{Binding Value}" TextTrimming="CharacterEllipsis"
+                           Classes.positive="{Binding IsPositive}" Classes.negative="{Binding IsNegative}" />
+                <TextBlock Classes="subtle small" Text="{Binding Caption}" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" />
+              </StackPanel>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+        <ItemsControl.Styles>
+          <Style Selector=":is(TextBlock).kpi.positive">
+            <Setter Property="Foreground" Value="{DynamicResource PositiveBrush}" />
+          </Style>
+          <Style Selector=":is(TextBlock).kpi.negative">
+            <Setter Property="Foreground" Value="{DynamicResource NegativeBrush}" />
+          </Style>
+        </ItemsControl.Styles>
+      </ItemsControl>
+
+      <TextBlock Classes="subtle" Text="За этот период записей нет" IsVisible="{Binding IsEmpty}" HorizontalAlignment="Center" />
+
+      <!-- Графики (F3.3) -->
+      <Border Classes="card" IsVisible="{Binding HasChart}" Margin="0,0,12,0">
+        <StackPanel Spacing="8">
+          <TextBlock Classes="h2" Text="{Binding ChartTitle}" />
+          <controls:BarChart Height="240" Items="{Binding ChartItems}" NormValue="{Binding ChartNorm}"
+                             AutomationProperties.Name="График по периоду" />
+        </StackPanel>
+      </Border>
+
+      <Grid ColumnDefinitions="*,*" Margin="0,0,12,0">
+        <Border Classes="card" IsVisible="{Binding HasWeekdays}" Grid.ColumnSpan="2">
+          <StackPanel Spacing="8">
+            <TextBlock Classes="h2" Text="В среднем по дням недели" />
+            <controls:BarChart Height="180" Items="{Binding WeekdayItems}"
+                               AutomationProperties.Name="Среднее по дням недели" />
+          </StackPanel>
+        </Border>
+      </Grid>
+
+      <Border Classes="card" IsVisible="{Binding HasHeatmap}" Margin="0,0,12,0">
+        <StackPanel Spacing="8">
+          <TextBlock Classes="h2" Text="Тепловая карта года" />
+          <controls:YearHeatmap Cells="{Binding HeatmapCells}" AutomationProperties.Name="Тепловая карта года" />
+        </StackPanel>
+      </Border>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

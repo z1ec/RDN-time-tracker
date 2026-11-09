@@ -1,16 +1,62 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:WorkTimeTracker.App.ViewModels"
+        xmlns:views="using:WorkTimeTracker.App.Views"
         x:Class="WorkTimeTracker.App.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
         Title="WorkTime Tracker"
+        Icon="avares://WorkTimeTracker/Assets/app.ico"
         Width="1200" Height="780" MinWidth="900" MinHeight="600"
-        WindowStartupLocation="CenterScreen">
-  <SplitView IsPaneOpen="False" DisplayMode="CompactInline" CompactPaneLength="56">
+        WindowStartupLocation="CenterScreen"
+        Background="{DynamicResource PageBackgroundBrush}">
+  <Window.KeyBindings>
+    <KeyBinding Gesture="Ctrl+D1" Command="{Binding NavigateCommand}" CommandParameter="1" />
+    <KeyBinding Gesture="Ctrl+D2" Command="{Binding NavigateCommand}" CommandParameter="2" />
+    <KeyBinding Gesture="Ctrl+D3" Command="{Binding NavigateCommand}" CommandParameter="3" />
+    <KeyBinding Gesture="Ctrl+D4" Command="{Binding NavigateCommand}" CommandParameter="4" />
+    <KeyBinding Gesture="Ctrl+NumPad1" Command="{Binding NavigateCommand}" CommandParameter="1" />
+    <KeyBinding Gesture="Ctrl+NumPad2" Command="{Binding NavigateCommand}" CommandParameter="2" />
+    <KeyBinding Gesture="Ctrl+NumPad3" Command="{Binding NavigateCommand}" CommandParameter="3" />
+    <KeyBinding Gesture="Ctrl+NumPad4" Command="{Binding NavigateCommand}" CommandParameter="4" />
+  </Window.KeyBindings>
+
+  <SplitView IsPaneOpen="{Binding IsPaneOpen}"
+             DisplayMode="CompactInline"
+             CompactPaneLength="64"
+             OpenPaneLength="220"
+             PaneBackground="{DynamicResource PaneBackgroundBrush}">
     <SplitView.Pane>
-      <StackPanel Margin="8" Spacing="8">
-        <Button Content="Ж" AutomationProperties.Name="Журнал" />
-        <Button Content="С" AutomationProperties.Name="Статистика" />
-      </StackPanel>
+      <DockPanel>
+        <Button DockPanel.Dock="Top" Classes="icon" Margin="12,12,0,8" Padding="10"
+                Command="{Binding TogglePaneCommand}"
+                AutomationProperties.Name="Развернуть или свернуть меню"
+                ToolTip.Tip="Меню">
+          <PathIcon Data="{StaticResource IconLineHorizontal3}" />
+        </Button>
+        <ListBox Classes="nav" ItemsSource="{Binding Navigation}" SelectedItem="{Binding SelectedNavigation}"
+                 AutomationProperties.Name="Разделы">
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="vm:NavigationItem">
+              <StackPanel Orientation="Horizontal" Spacing="16" Background="Transparent"
+                          ToolTip.Tip="{Binding Hotkey, StringFormat='{}{0}'}"
+                          AutomationProperties.Name="{Binding Title}">
+                <PathIcon Data="{Binding IconKey, Converter={StaticResource IconConverter}}" Width="18" Height="18" />
+                <TextBlock Text="{Binding Title}" VerticalAlignment="Center"
+                           IsVisible="{Binding $parent[SplitView].IsPaneOpen}" />
+              </StackPanel>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </DockPanel>
     </SplitView.Pane>
-    <TextBlock Text="WorkTime Tracker" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="24" />
+
+    <ContentControl Content="{Binding CurrentPage}">
+      <ContentControl.DataTemplates>
+        <DataTemplate DataType="vm:JournalViewModel"><views:JournalView /></DataTemplate>
+        <DataTemplate DataType="vm:StatisticsViewModel"><views:StatisticsView /></DataTemplate>
+        <DataTemplate DataType="vm:SettingsViewModel"><views:SettingsView /></DataTemplate>
+        <DataTemplate DataType="vm:AboutViewModel"><views:AboutView /></DataTemplate>
+      </ContentControl.DataTemplates>
+    </ContentControl>
   </SplitView>
 </Window>

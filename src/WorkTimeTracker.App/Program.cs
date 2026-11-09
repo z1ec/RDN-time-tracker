@@ -1,5 +1,7 @@
+using System.Globalization;
 using Avalonia;
 using WorkTimeTracker.App.Services;
+using WorkTimeTracker.Core.Formatting;
 
 namespace WorkTimeTracker.App;
 
@@ -12,6 +14,12 @@ internal static class Program
     [STAThread]
     public static int Main(string[] args)
     {
+        // Даты, пикеры и числа — по-русски независимо от локали ОС (F7.7).
+        CultureInfo.DefaultThreadCurrentCulture = RuFormat.Culture;
+        CultureInfo.DefaultThreadCurrentUICulture = RuFormat.Culture;
+        CultureInfo.CurrentCulture = RuFormat.Culture;
+        CultureInfo.CurrentUICulture = RuFormat.Culture;
+
         var options = CommandLineOptions.Parse(args);
 
         if (options.ShowVersion)

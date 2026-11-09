@@ -1,0 +1,105 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:WorkTimeTracker.App.ViewModels"
+             x:Class="WorkTimeTracker.App.Views.SettingsView"
+             x:DataType="vm:SettingsViewModel">
+  <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+    <StackPanel Margin="24,20,24,24" Spacing="16" MaxWidth="860" HorizontalAlignment="Left">
+      <TextBlock Classes="h1" Text="Настройки" />
+
+      <Border Classes="card">
+        <StackPanel Spacing="16">
+          <TextBlock Classes="h2" Text="Рабочее время" />
+          <Grid ColumnDefinitions="240,*" RowDefinitions="Auto,Auto" RowSpacing="16">
+            <StackPanel VerticalAlignment="Center">
+              <TextBlock Text="Дневная норма" />
+              <TextBlock Classes="subtle small" Text="для нормы и переработки в статистике" TextWrapping="Wrap" />
+            </StackPanel>
+            <TimePicker Grid.Column="1" ClockIdentifier="24HourClock" MinuteIncrement="5"
+                        SelectedTime="{Binding DailyNorm}" HorizontalAlignment="Left"
+                        AutomationProperties.Name="Дневная норма" />
+            <StackPanel Grid.Row="1" VerticalAlignment="Center">
+              <TextBlock Text="Рабочие дни недели" />
+              <TextBlock Classes="subtle small" Text="в эти дни норма учитывается" TextWrapping="Wrap" />
+            </StackPanel>
+            <ItemsControl Grid.Row="1" Grid.Column="1" ItemsSource="{Binding WorkDays}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="6" /></ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:WorkDayOption">
+                  <ToggleButton Content="{Binding Title}" IsChecked="{Binding IsSelected}" Width="48"
+                                HorizontalContentAlignment="Center" ToolTip.Tip="{Binding FullName}"
+                                AutomationProperties.Name="{Binding FullName}" />
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </Grid>
+        </StackPanel>
+      </Border>
+
+      <Border Classes="card">
+        <StackPanel Spacing="16">
+          <TextBlock Classes="h2" Text="Оформление" />
+          <Grid ColumnDefinitions="240,*">
+            <TextBlock Text="Тема" VerticalAlignment="Center" />
+            <ComboBox Grid.Column="1" Width="220" ItemsSource="{Binding Themes}" SelectedIndex="{Binding ThemeIndex}"
+                      AutomationProperties.Name="Тема" />
+          </Grid>
+        </StackPanel>
+      </Border>
+
+      <Border Classes="card">
+        <StackPanel Spacing="16">
+          <TextBlock Classes="h2" Text="Данные" />
+          <Grid ColumnDefinitions="240,*" RowDefinitions="Auto,Auto,Auto" RowSpacing="16">
+            <StackPanel VerticalAlignment="Top">
+              <TextBlock Text="Папка данных" />
+              <TextBlock Classes="subtle small" Text="{Binding LocationKindText}" TextWrapping="Wrap" />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Spacing="8">
+              <SelectableTextBlock Text="{Binding DatabasePath}" TextWrapping="Wrap" AutomationProperties.Name="Путь к базе данных" />
+              <Button Command="{Binding OpenDataFolderCommand}" AutomationProperties.Name="Открыть папку данных">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <PathIcon Data="{StaticResource IconFolderOpen}" />
+                  <TextBlock Text="Открыть папку" />
+                </StackPanel>
+              </Button>
+            </StackPanel>
+
+            <StackPanel Grid.Row="1" VerticalAlignment="Top">
+              <TextBlock Text="Резервные копии" />
+              <TextBlock Classes="subtle small" Text="автоматически раз в день при запуске" TextWrapping="Wrap" />
+            </StackPanel>
+            <StackPanel Grid.Row="1" Grid.Column="1" Spacing="8">
+              <TextBlock Classes="subtle" Text="{Binding BackupsInfo}" TextWrapping="Wrap" />
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button Command="{Binding BackupNowCommand}" AutomationProperties.Name="Сделать резервную копию сейчас">
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <PathIcon Data="{StaticResource IconSave}" />
+                    <TextBlock Text="Сделать резервную копию сейчас" />
+                  </StackPanel>
+                </Button>
+                <Button Command="{Binding OpenBackupsFolderCommand}" Content="Открыть папку копий" AutomationProperties.Name="Открыть папку копий" />
+              </StackPanel>
+            </StackPanel>
+
+            <StackPanel Grid.Row="2" VerticalAlignment="Top">
+              <TextBlock Text="Экспорт" />
+              <TextBlock Classes="subtle small" Text="CSV для Excel: UTF-8, разделитель «;»" TextWrapping="Wrap" />
+            </StackPanel>
+            <Button Grid.Row="2" Grid.Column="1" Command="{Binding ExportAllCommand}" AutomationProperties.Name="Экспорт всех данных в CSV">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <PathIcon Data="{StaticResource IconDocumentTable}" />
+                <TextBlock Text="Экспорт всех данных в CSV" />
+              </StackPanel>
+            </Button>
+          </Grid>
+        </StackPanel>
+      </Border>
+
+      <TextBlock Classes="success" Text="{Binding StatusText}" TextWrapping="Wrap"
+                 IsVisible="{Binding StatusText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

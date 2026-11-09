@@ -1,0 +1,62 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <!-- Палитра приложения (docs/ARCHITECTURE.md, раздел «Дизайн»): акцент — индиго. -->
+  <ResourceDictionary.ThemeDictionaries>
+    <ResourceDictionary x:Key="Light">
+      <SolidColorBrush x:Key="PageBackgroundBrush" Color="#F5F6FA" />
+      <SolidColorBrush x:Key="PaneBackgroundBrush" Color="#ECEEF6" />
+      <SolidColorBrush x:Key="CardBackgroundBrush" Color="#FFFFFF" />
+      <SolidColorBrush x:Key="CardBorderBrush" Color="#E3E6EF" />
+      <SolidColorBrush x:Key="HeaderTextBrush" Color="#111827" />
+      <SolidColorBrush x:Key="SubtleTextBrush" Color="#6B7280" />
+      <SolidColorBrush x:Key="AccentTextBrush" Color="#4338CA" />
+      <SolidColorBrush x:Key="AccentSoftBrush" Color="#EEF0FF" />
+      <SolidColorBrush x:Key="PositiveBrush" Color="#047857" />
+      <SolidColorBrush x:Key="NegativeBrush" Color="#C2410C" />
+      <SolidColorBrush x:Key="ErrorBrush" Color="#DC2626" />
+      <SolidColorBrush x:Key="SuccessBrush" Color="#047857" />
+      <SolidColorBrush x:Key="ToastBackgroundBrush" Color="#1F2937" />
+      <SolidColorBrush x:Key="ToastForegroundBrush" Color="#F9FAFB" />
+      <SolidColorBrush x:Key="ToastAccentBrush" Color="#A5B4FC" />
+      <SolidColorBrush x:Key="ChartBarBrush" Color="#818CF8" />
+      <SolidColorBrush x:Key="ChartHighlightBrush" Color="#4F46E5" />
+      <SolidColorBrush x:Key="ChartMutedBrush" Color="#C7D2FE" />
+      <SolidColorBrush x:Key="ChartNormBrush" Color="#EA580C" />
+      <SolidColorBrush x:Key="ChartGridBrush" Color="#E5E7EB" />
+      <SolidColorBrush x:Key="ChartAxisBrush" Color="#6B7280" />
+      <SolidColorBrush x:Key="Heat0Brush" Color="#EBEDF2" />
+      <SolidColorBrush x:Key="Heat1Brush" Color="#C7D2FE" />
+      <SolidColorBrush x:Key="Heat2Brush" Color="#A5B4FC" />
+      <SolidColorBrush x:Key="Heat3Brush" Color="#6366F1" />
+      <SolidColorBrush x:Key="Heat4Brush" Color="#4338CA" />
+    </ResourceDictionary>
+    <ResourceDictionary x:Key="Dark">
+      <SolidColorBrush x:Key="PageBackgroundBrush" Color="#131418" />
+      <SolidColorBrush x:Key="PaneBackgroundBrush" Color="#1A1C22" />
+      <SolidColorBrush x:Key="CardBackgroundBrush" Color="#1E2028" />
+      <SolidColorBrush x:Key="CardBorderBrush" Color="#2D303C" />
+      <SolidColorBrush x:Key="HeaderTextBrush" Color="#F3F4F6" />
+      <SolidColorBrush x:Key="SubtleTextBrush" Color="#9CA3AF" />
+      <SolidColorBrush x:Key="AccentTextBrush" Color="#A5B4FC" />
+      <SolidColorBrush x:Key="AccentSoftBrush" Color="#272B47" />
+      <SolidColorBrush x:Key="PositiveBrush" Color="#34D399" />
+      <SolidColorBrush x:Key="NegativeBrush" Color="#FB923C" />
+      <SolidColorBrush x:Key="ErrorBrush" Color="#F87171" />
+      <SolidColorBrush x:Key="SuccessBrush" Color="#34D399" />
+      <SolidColorBrush x:Key="ToastBackgroundBrush" Color="#E5E7EB" />
+      <SolidColorBrush x:Key="ToastForegroundBrush" Color="#111827" />
+      <SolidColorBrush x:Key="ToastAccentBrush" Color="#4338CA" />
+      <SolidColorBrush x:Key="ChartBarBrush" Color="#6366F1" />
+      <SolidColorBrush x:Key="ChartHighlightBrush" Color="#A5B4FC" />
+      <SolidColorBrush x:Key="ChartMutedBrush" Color="#373B66" />
+      <SolidColorBrush x:Key="ChartNormBrush" Color="#FB923C" />
+      <SolidColorBrush x:Key="ChartGridBrush" Color="#2C2F3A" />
+      <SolidColorBrush x:Key="ChartAxisBrush" Color="#9CA3AF" />
+      <SolidColorBrush x:Key="Heat0Brush" Color="#262833" />
+      <SolidColorBrush x:Key="Heat1Brush" Color="#312E81" />
+      <SolidColorBrush x:Key="Heat2Brush" Color="#4338CA" />
+      <SolidColorBrush x:Key="Heat3Brush" Color="#6366F1" />
+      <SolidColorBrush x:Key="Heat4Brush" Color="#A5B4FC" />
+    </ResourceDictionary>
+  </ResourceDictionary.ThemeDictionaries>
+</ResourceDictionary>

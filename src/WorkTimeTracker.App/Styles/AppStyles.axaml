@@ -1,0 +1,121 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="using:WorkTimeTracker.App.Controls">
+  <!-- Сетка отступов кратна 8, скругления 8–12 px (docs/ARCHITECTURE.md, «Дизайн»). -->
+
+  <Style Selector="Border.card">
+    <Setter Property="Background" Value="{DynamicResource CardBackgroundBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource CardBorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="12" />
+    <Setter Property="Padding" Value="16" />
+  </Style>
+
+  <Style Selector=":is(TextBlock).h1">
+    <Setter Property="FontSize" Value="24" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{DynamicResource HeaderTextBrush}" />
+  </Style>
+  <Style Selector=":is(TextBlock).h2">
+    <Setter Property="FontSize" Value="15" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{DynamicResource HeaderTextBrush}" />
+  </Style>
+  <Style Selector=":is(TextBlock).subtle">
+    <Setter Property="Foreground" Value="{DynamicResource SubtleTextBrush}" />
+  </Style>
+  <Style Selector=":is(TextBlock).small">
+    <Setter Property="FontSize" Value="12" />
+  </Style>
+  <Style Selector=":is(TextBlock).kpi">
+    <Setter Property="FontSize" Value="28" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{DynamicResource HeaderTextBrush}" />
+  </Style>
+  <Style Selector=":is(TextBlock).error">
+    <Setter Property="Foreground" Value="{DynamicResource ErrorBrush}" />
+  </Style>
+  <Style Selector=":is(TextBlock).success">
+    <Setter Property="Foreground" Value="{DynamicResource SuccessBrush}" />
+  </Style>
+
+  <Style Selector="PathIcon">
+    <Setter Property="Width" Value="16" />
+    <Setter Property="Height" Value="16" />
+  </Style>
+
+  <!-- Кнопки-иконки в строках списка -->
+  <Style Selector="Button.icon">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="8" />
+    <Setter Property="CornerRadius" Value="8" />
+  </Style>
+
+  <Style Selector="Button.icon:disabled /template/ ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+  <Style Selector="Button.icon:disabled PathIcon">
+    <Setter Property="Opacity" Value="0.35" />
+  </Style>
+
+  <Style Selector="Button, ToggleButton, TextBox, ComboBox, CalendarDatePicker, TimePicker">
+    <Setter Property="CornerRadius" Value="8" />
+  </Style>
+
+  <!-- Навигация -->
+  <Style Selector="ListBox.nav">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+  <Style Selector="ListBox.nav > ListBoxItem">
+    <Setter Property="Margin" Value="8,2" />
+    <Setter Property="Padding" Value="12,10" />
+    <Setter Property="CornerRadius" Value="8" />
+  </Style>
+
+  <!-- Сегментированный выбор периода -->
+  <Style Selector="ListBox.segmented">
+    <Setter Property="Background" Value="{DynamicResource CardBackgroundBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource CardBorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="10" />
+    <Setter Property="Padding" Value="3" />
+  </Style>
+  <Style Selector="ListBox.segmented > ListBoxItem">
+    <Setter Property="Padding" Value="14,6" />
+    <Setter Property="CornerRadius" Value="8" />
+  </Style>
+  <Style Selector="ListBox.segmented > ListBoxItem:selected /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
+  </Style>
+  <Style Selector="ListBox.segmented > ListBoxItem:selected">
+    <Setter Property="Foreground" Value="{DynamicResource AccentTextBrush}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+
+  <!-- Список записей -->
+  <Style Selector="ListBox.journal > ListBoxItem">
+    <Setter Property="Padding" Value="12,6" />
+    <Setter Property="Margin" Value="0,1" />
+    <Setter Property="CornerRadius" Value="8" />
+  </Style>
+
+  <!-- Графики берут цвета из темы -->
+  <Style Selector="controls|BarChart">
+    <Setter Property="BarBrush" Value="{DynamicResource ChartBarBrush}" />
+    <Setter Property="HighlightBrush" Value="{DynamicResource ChartHighlightBrush}" />
+    <Setter Property="MutedBrush" Value="{DynamicResource ChartMutedBrush}" />
+    <Setter Property="NormBrush" Value="{DynamicResource ChartNormBrush}" />
+    <Setter Property="GridBrush" Value="{DynamicResource ChartGridBrush}" />
+    <Setter Property="AxisTextBrush" Value="{DynamicResource ChartAxisBrush}" />
+  </Style>
+  <Style Selector="controls|YearHeatmap">
+    <Setter Property="Level0Brush" Value="{DynamicResource Heat0Brush}" />
+    <Setter Property="Level1Brush" Value="{DynamicResource Heat1Brush}" />
+    <Setter Property="Level2Brush" Value="{DynamicResource Heat2Brush}" />
+    <Setter Property="Level3Brush" Value="{DynamicResource Heat3Brush}" />
+    <Setter Property="Level4Brush" Value="{DynamicResource Heat4Brush}" />
+    <Setter Property="GridBrush" Value="{DynamicResource ChartGridBrush}" />
+    <Setter Property="AxisTextBrush" Value="{DynamicResource ChartAxisBrush}" />
+  </Style>
+</Styles>

@@ -1,0 +1,197 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:WorkTimeTracker.App.ViewModels"
+             x:Class="WorkTimeTracker.App.Views.JournalView"
+             x:DataType="vm:JournalViewModel">
+  <UserControl.Styles>
+    <!-- Заголовки дней нельзя выделить -->
+    <Style Selector="ListBox.journal > ListBoxItem" x:DataType="vm:JournalRow">
+      <Setter Property="IsEnabled" Value="{Binding IsSelectable}" />
+    </Style>
+  </UserControl.Styles>
+
+  <Grid RowDefinitions="Auto,Auto,*" Margin="24,20,24,16">
+    <!-- Заголовок, сводка (F3.4), поиск (F6.4) -->
+    <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,16">
+      <StackPanel Spacing="2">
+        <TextBlock Classes="h1" Text="Журнал" />
+        <TextBlock Classes="subtle" Text="{Binding SummaryText}" AutomationProperties.Name="Сводка" />
+      </StackPanel>
+      <TextBox Grid.Column="2" x:Name="SearchBox" Width="280" VerticalAlignment="Center"
+               Text="{Binding SearchText}"
+               PlaceholderText="Поиск по комментариям (Ctrl+F)"
+               AutomationProperties.Name="Поиск по комментариям">
+        <TextBox.InnerLeftContent>
+          <PathIcon Data="{StaticResource IconSearch}" Margin="10,0,0,0" Opacity="0.6" />
+        </TextBox.InnerLeftContent>
+        <TextBox.KeyBindings>
+          <KeyBinding Gesture="Escape" Command="{Binding ClearSearchCommand}" />
+        </TextBox.KeyBindings>
+      </TextBox>
+    </Grid>
+
+    <!-- Быстрый ввод (F1) и форма (F2) -->
+    <Border Grid.Row="1" Classes="card" Margin="0,0,0,16">
+      <StackPanel Spacing="8">
+        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+          <CalendarDatePicker Grid.Column="0" Width="150"
+                              SelectedDate="{Binding SelectedDate}"
+                              DisplayDateEnd="{Binding MaxDate}"
+                              IsTodayHighlighted="True"
+                              SelectedDateFormat="Custom" CustomDateFormatString="ddd, d MMM"
+                              ToolTip.Tip="Дата для записей без даты в строке"
+                              AutomationProperties.Name="Дата записи" />
+          <TextBox Grid.Column="1" x:Name="QuickInputBox"
+                   Text="{Binding QuickInput}"
+                   AcceptsReturn="True" TextWrapping="NoWrap" MaxHeight="140"
+                   FontSize="15" VerticalContentAlignment="Center"
+                   PlaceholderText="0900 1800 созвон с клиентом — Enter добавляет, можно вставить несколько строк"
+                   AutomationProperties.Name="Быстрый ввод" />
+          <Button Grid.Column="2" Classes="accent" Command="{Binding AddCommand}" Padding="16,8"
+                  AutomationProperties.Name="Добавить" VerticalAlignment="Top">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <PathIcon Data="{StaticResource IconAdd}" />
+              <TextBlock Text="Добавить" />
+            </StackPanel>
+          </Button>
+        </Grid>
+
+        <SelectableTextBlock Text="{Binding PreviewText}" IsVisible="{Binding HasPreview}"
+                             Classes.error="{Binding PreviewIsError}"
+                             Classes.success="{Binding !PreviewIsError}"
+                             TextWrapping="Wrap" Margin="158,0,0,0"
+                             AutomationProperties.Name="Предпросмотр" />
+
+        <Expander Header="Ввести через форму" IsExpanded="{Binding IsFormExpanded}"
+                  HorizontalAlignment="Stretch" AutomationProperties.Name="Ввести через форму">
+          <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,*,Auto" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="8">
+            <StackPanel Grid.Column="0" Spacing="4">
+              <TextBlock Classes="subtle small" Text="Дата" />
+              <CalendarDatePicker Width="150" SelectedDate="{Binding SelectedDate}" DisplayDateEnd="{Binding MaxDate}"
+                                  SelectedDateFormat="Custom" CustomDateFormatString="dd.MM.yyyy"
+                                  AutomationProperties.Name="Дата в форме" />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Spacing="4">
+              <TextBlock Classes="subtle small" Text="Начало" />
+              <StackPanel Orientation="Horizontal" Spacing="4">
+                <TimePicker ClockIdentifier="24HourClock" MinuteIncrement="1" SelectedTime="{Binding FormStart}"
+                            AutomationProperties.Name="Начало" />
+                <Button Classes="icon" Command="{Binding SetFormStartNowCommand}" ToolTip.Tip="Сейчас"
+                        AutomationProperties.Name="Начало — сейчас">
+                  <PathIcon Data="{StaticResource IconClock}" />
+                </Button>
+              </StackPanel>
+            </StackPanel>
+            <StackPanel Grid.Column="2" Spacing="4">
+              <TextBlock Classes="subtle small" Text="Конец" />
+              <StackPanel Orientation="Horizontal" Spacing="4">
+                <TimePicker ClockIdentifier="24HourClock" MinuteIncrement="1" SelectedTime="{Binding FormEnd}"
+                            AutomationProperties.Name="Конец" />
+                <Button Classes="icon" Command="{Binding SetFormEndNowCommand}" ToolTip.Tip="Сейчас"
+                        AutomationProperties.Name="Конец — сейчас">
+                  <PathIcon Data="{StaticResource IconClock}" />
+                </Button>
+              </StackPanel>
+            </StackPanel>
+            <StackPanel Grid.Column="3" Spacing="4" VerticalAlignment="Bottom" MinWidth="120">
+              <TextBlock Classes="subtle small" Text="Длительность" />
+              <TextBlock Text="{Binding FormDurationText}" FontWeight="SemiBold" Margin="0,6" AutomationProperties.Name="Длительность в форме" />
+            </StackPanel>
+            <Grid Grid.Row="1" Grid.ColumnSpan="5" RowDefinitions="Auto,Auto">
+              <TextBox Text="{Binding FormComment}" MaxLength="500" PlaceholderText="Комментарий (необязательно)"
+                       AutomationProperties.Name="Комментарий в форме" />
+              <TextBlock Grid.Row="1" Classes="subtle small" HorizontalAlignment="Right" Margin="0,2,0,0" Text="{Binding FormCommentCounter}" />
+            </Grid>
+            <Button Grid.Row="1" Grid.Column="5" Classes="accent" VerticalAlignment="Top" Command="{Binding AddFromFormCommand}"
+                    Content="Добавить" Padding="16,8" AutomationProperties.Name="Добавить из формы" />
+            <TextBlock Grid.Row="2" Grid.ColumnSpan="6" Classes="error" Text="{Binding FormError}" TextWrapping="Wrap"
+                       IsVisible="{Binding FormError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+          </Grid>
+        </Expander>
+      </StackPanel>
+    </Border>
+
+    <!-- Список по дням (F7.2), удаление (F5), редактирование (F6.3) -->
+    <Border Grid.Row="2" Classes="card" Padding="8">
+      <Grid RowDefinitions="*,Auto">
+        <ListBox x:Name="EntriesList" Classes="journal" Background="Transparent"
+                 ItemsSource="{Binding Rows}" SelectedItems="{Binding SelectedRows}"
+                 SelectionMode="Multiple"
+                 AutomationProperties.Name="Записи">
+          <ListBox.KeyBindings>
+            <KeyBinding Gesture="Delete" Command="{Binding DeleteSelectedCommand}" />
+          </ListBox.KeyBindings>
+          <ListBox.DataTemplates>
+            <DataTemplate DataType="vm:DayHeaderRow">
+              <Grid ColumnDefinitions="*,Auto" Margin="4,10,4,2">
+                <TextBlock Classes="h2" Text="{Binding Title}" Foreground="{DynamicResource HeaderTextBrush}" />
+                <TextBlock Grid.Column="1" Text="{Binding TotalText}" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextBrush}" />
+              </Grid>
+            </DataTemplate>
+            <DataTemplate DataType="vm:EntryRow">
+              <Grid ColumnDefinitions="140,32,110,*,Auto,Auto" Background="Transparent"
+                    DoubleTapped="OnEntryDoubleTapped"
+                    AutomationProperties.Name="{Binding AccessibleName}">
+                <Grid.ContextMenu>
+                  <ContextMenu>
+                    <MenuItem Header="Изменить" Command="{Binding $parent[ListBox].((vm:JournalViewModel)DataContext).EditEntryCommand}" CommandParameter="{Binding}" />
+                    <MenuItem Header="Удалить выбранные (Del)" Command="{Binding $parent[ListBox].((vm:JournalViewModel)DataContext).DeleteSelectedCommand}" />
+                    <MenuItem Header="Удалить эту запись" Command="{Binding $parent[ListBox].((vm:JournalViewModel)DataContext).DeleteEntryCommand}" CommandParameter="{Binding}" />
+                  </ContextMenu>
+                </Grid.ContextMenu>
+                <TextBlock Text="{Binding TimeText}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                <Border Grid.Column="1" IsVisible="{Binding EndsNextDay}" Background="{DynamicResource AccentSoftBrush}"
+                        CornerRadius="6" Padding="5,1" VerticalAlignment="Center" HorizontalAlignment="Left"
+                        ToolTip.Tip="Ночная смена: конец на следующий день">
+                  <TextBlock Text="+1" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextBrush}" />
+                </Border>
+                <TextBlock Grid.Column="2" Text="{Binding DurationText}" Classes="subtle" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="3" Text="{Binding Comment}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
+                           ToolTip.Tip="{Binding Comment}" ToolTip.IsEnabled="{Binding HasComment}" />
+                <Button Grid.Column="4" Classes="icon" ToolTip.Tip="Изменить (двойной клик)"
+                        Command="{Binding $parent[ListBox].((vm:JournalViewModel)DataContext).EditEntryCommand}" CommandParameter="{Binding}"
+                        AutomationProperties.Name="Изменить запись">
+                  <PathIcon Data="{StaticResource IconEdit}" />
+                </Button>
+                <Button Grid.Column="5" Classes="icon" ToolTip.Tip="Удалить (Del)"
+                        Command="{Binding $parent[ListBox].((vm:JournalViewModel)DataContext).DeleteEntryCommand}" CommandParameter="{Binding}"
+                        AutomationProperties.Name="Удалить запись">
+                  <PathIcon Data="{StaticResource IconDelete}" />
+                </Button>
+              </Grid>
+            </DataTemplate>
+          </ListBox.DataTemplates>
+        </ListBox>
+
+        <!-- Пустое состояние -->
+        <StackPanel IsVisible="{Binding IsEmpty}" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12">
+          <PathIcon Data="{StaticResource IconBook}" Width="40" Height="40" Opacity="0.35" HorizontalAlignment="Center" />
+          <TextBlock Classes="subtle" FontSize="15" Text="{Binding EmptyText}" TextAlignment="Center" TextWrapping="Wrap" MaxWidth="460" />
+        </StackPanel>
+
+        <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Margin="8,8,8,4">
+          <TextBlock Classes="subtle small" Text="{Binding StatusText}" VerticalAlignment="Center" />
+          <Button Grid.Column="1" Content="Показать ещё 30 дней" Command="{Binding ShowMoreCommand}"
+                  IsVisible="{Binding HasMore}" AutomationProperties.Name="Показать ещё" />
+        </Grid>
+
+        <!-- Уведомление об удалении с отменой (F5.3) -->
+        <Border Grid.RowSpan="2" IsVisible="{Binding IsUndoToastVisible}"
+                Background="{DynamicResource ToastBackgroundBrush}" CornerRadius="10" Padding="16,8,8,8"
+                HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,16"
+                BoxShadow="0 4 16 0 #40000000">
+          <StackPanel Orientation="Horizontal" Spacing="16">
+            <TextBlock Text="{Binding UndoToastText}" Foreground="{DynamicResource ToastForegroundBrush}" VerticalAlignment="Center" />
+            <Button Command="{Binding UndoCommand}" Background="Transparent" Padding="8,4"
+                    AutomationProperties.Name="Отменить удаление" ToolTip.Tip="Ctrl+Z">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <PathIcon Data="{StaticResource IconArrowUndo}" Foreground="{DynamicResource ToastAccentBrush}" />
+                <TextBlock Text="Отменить" FontWeight="SemiBold" Foreground="{DynamicResource ToastAccentBrush}" />
+              </StackPanel>
+            </Button>
+          </StackPanel>
+        </Border>
+      </Grid>
+    </Border>
+  </Grid>
+</UserControl>
