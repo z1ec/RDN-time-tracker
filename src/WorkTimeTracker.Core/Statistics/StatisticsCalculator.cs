@@ -16,7 +16,11 @@ public static class StatisticsCalculator
     /// </param>
     /// <param name="today">Сегодняшняя дата.</param>
     /// <param name="settings">Норма и рабочие дни недели.</param>
-    public static PeriodStatistics Calculate(Period period, IEnumerable<WorkEntry> entries, DateOnly today, AppSettings settings)
+    /// <param name="firstEntryDate">
+    /// Дата самой первой записи вообще (не только в периоде). Дни до неё не входят в норму:
+    /// трекер тогда ещё не вёлся. <c>null</c> — ограничения нет.
+    /// </param>
+    public static PeriodStatistics Calculate(Period period, IEnumerable<WorkEntry> entries, DateOnly today, AppSettings settings, DateOnly? firstEntryDate = null)
     {
         var all = entries as IReadOnlyCollection<WorkEntry> ?? [.. entries];
         var inPeriod = all.Where(e => period.Contains(e.Date)).ToList();
@@ -54,7 +58,8 @@ public static class StatisticsCalculator
         }
 
         var normDays = 0;
-        for (var d = period.Start; d <= effectiveEnd; d = d.AddDays(1))
+        var normStart = firstEntryDate is { } first && first > period.Start ? first : period.Start;
+        for (var d = normStart; d <= effectiveEnd; d = d.AddDays(1))
         {
             if (settings.WorkDays.Contains(d.DayOfWeek))
             {
@@ -79,7 +84,7 @@ public static class StatisticsCalculator
             AverageEndMinute = workDays == 0 ? null : byDay.Average(d => d.LastEnd),
             NormDays = normDays,
             NormMinutes = normDays * settings.DailyNormMinutes,
-            Comparison = Compare(period, all, total),
+            Comparison = Compare(period, all, total, today),
             Daily = Daily(period, inPeriod),
             Monthly = Monthly(period, inPeriod),
             Weekdays = Weekdays(period.Start, effectiveEnd, inPeriod),
@@ -94,7 +99,11 @@ public static class StatisticsCalculator
     public static string FormatAverageClock(double? minute) =>
         minute is null ? "—" : RuFormat.ClockWithDayOffset((int)Math.Round(minute.Value, MidpointRounding.AwayFromZero));
 
-    private static PeriodComparison? Compare(Period period, IReadOnlyCollection<WorkEntry> all, int total)
+    /// <summary>
+    /// Сравнение с предыдущим периодом. Если текущий период ещё идёт, берётся то же число дней
+    /// от начала предыдущего (неделя «Пн–Чт» сравнивается с «Пн–Чт» прошлой недели).
+    /// </summary>
+    private static PeriodComparison? Compare(Period period, IReadOnlyCollection<WorkEntry> all, int total, DateOnly today)
     {
         var previous = PeriodNavigator.Previous(period);
         if (previous is null)
@@ -102,10 +111,19 @@ public static class StatisticsCalculator
             return null;
         }
 
-        var prevTotal = Total(previous, all);
+        var comparedEnd = previous.End;
+        if (PeriodNavigator.IsCurrent(period, today))
+        {
+            var elapsed = today.DayNumber - period.Start.DayNumber;
+            var candidate = previous.Start.AddDays(elapsed);
+            comparedEnd = candidate < previous.End ? candidate : previous.End;
+        }
+
+        var compared = previous with { End = comparedEnd };
+        var prevTotal = Total(compared, all);
         var delta = total - prevTotal;
         double? percent = prevTotal == 0 ? null : 100.0 * delta / prevTotal;
-        return new PeriodComparison(previous, prevTotal, delta, percent);
+        return new PeriodComparison(previous, comparedEnd, prevTotal, delta, percent);
     }
 
     private static List<DayTotal> Daily(Period period, List<WorkEntry> inPeriod)

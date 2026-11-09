@@ -56,6 +56,8 @@ public class StatisticsCalculatorTests
     public void FullWeek_ComparedWithPreviousWeek()
     {
         var c = Week("04.11.2026").Comparison!;
+        Assert.False(c.IsPartial);
+        Assert.Equal(7, c.ComparedDays);
         Assert.Equal(D("26.10.2026"), c.Previous.Start);
         Assert.Equal(480, c.PreviousTotalMinutes);
         Assert.Equal(1200, c.DeltaMinutes);
@@ -75,7 +77,14 @@ public class StatisticsCalculatorTests
         Assert.Equal(-240, s.BalanceMinutes);
         Assert.Equal(Today, s.EffectiveEnd);
         Assert.Equal(7, s.Daily.Count);           // график — по всем дням недели
-        Assert.Equal(-960, s.Comparison!.DeltaMinutes);
+
+        // Текущая неделя (Пн–Вт) сравнивается с теми же днями прошлой: 02.11 (8 ч) + 03.11 (9 ч).
+        var c = s.Comparison!;
+        Assert.True(c.IsPartial);
+        Assert.Equal(2, c.ComparedDays);
+        Assert.Equal(D("03.11.2026"), c.ComparedEnd);
+        Assert.Equal(1020, c.PreviousTotalMinutes);
+        Assert.Equal(-300, c.DeltaMinutes);
     }
 
     [Fact]
@@ -141,6 +150,43 @@ public class StatisticsCalculatorTests
         Assert.Equal(6, s.NormDays);
         Assert.Equal(2520, s.NormMinutes);
         Assert.Equal(1680 - 2520, s.BalanceMinutes);
+    }
+
+    [Fact]
+    public void CurrentMonth_ComparedWithSameDaysOfShorterMonth()
+    {
+        // 31 марта: март сравнивается с февралём целиком (в феврале нет 31-го дня).
+        var today = D("31.03.2026");
+        var entries = new[] { E("28.02.2026", 0, 60), E("15.02.2026", 0, 60), E("31.03.2026", 0, 30) };
+        var c = StatisticsCalculator.Calculate(PeriodNavigator.ForDate(PeriodKind.Month, today), entries, today, Settings).Comparison!;
+        Assert.Equal(D("28.02.2026"), c.ComparedEnd);
+        Assert.False(c.IsPartial);
+        Assert.Equal(120, c.PreviousTotalMinutes);
+        Assert.Equal(-75, c.DeltaPercent);
+    }
+
+    [Fact]
+    public void CurrentMonth_PartialComparison()
+    {
+        var c = StatisticsCalculator.Calculate(PeriodNavigator.ForDate(PeriodKind.Month, Today), Data, Today, Settings).Comparison!;
+        Assert.Equal(D("10.10.2026"), c.ComparedEnd);  // 1–10 октября
+        Assert.Equal(0, c.PreviousTotalMinutes);         // запись 27.10 не попадает
+        Assert.Null(c.DeltaPercent);
+    }
+
+    [Fact]
+    public void Norm_StartsFromFirstEntryDate()
+    {
+        var year = PeriodNavigator.ForDate(PeriodKind.Year, Today);
+        var withoutLimit = StatisticsCalculator.Calculate(year, Data, Today, Settings);
+        var limited = StatisticsCalculator.Calculate(year, Data, Today, Settings, firstEntryDate: D("27.10.2026"));
+
+        Assert.Equal(224, withoutLimit.NormDays);  // будни 01.01–10.11.2026: 44 недели × 5 + Чт, Пт, Пн, Вт
+        Assert.Equal(11, limited.NormDays);        // будни 27.10–10.11.2026
+        Assert.Equal(11 * 480, limited.NormMinutes);
+
+        var week = StatisticsCalculator.Calculate(PeriodNavigator.ForDate(PeriodKind.Week, D("04.11.2026")), Data, Today, Settings, firstEntryDate: D("01.01.2020"));
+        Assert.Equal(5, week.NormDays);            // первая запись раньше периода — ограничения нет
     }
 
     [Fact]

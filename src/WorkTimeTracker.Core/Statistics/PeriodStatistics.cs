@@ -12,11 +12,22 @@ public sealed record MonthTotal(int Year, int Month, int Minutes);
 public sealed record WeekdayAverage(DayOfWeek Day, double AverageMinutes, int Occurrences);
 
 /// <summary>Сравнение с предыдущим периодом (F3.2, P1).</summary>
-/// <param name="Previous">Период сравнения.</param>
-/// <param name="PreviousTotalMinutes">Итого за период сравнения.</param>
+/// <param name="Previous">Предыдущий период целиком.</param>
+/// <param name="ComparedEnd">
+/// Последний учитываемый день предыдущего периода: для текущего периода — тот же по счёту день,
+/// что и сегодня (сравнение «за то же число дней»), иначе — конец предыдущего периода.
+/// </param>
+/// <param name="PreviousTotalMinutes">Итого за <c>[Previous.Start; ComparedEnd]</c>.</param>
 /// <param name="DeltaMinutes">Разница: текущий − предыдущий.</param>
 /// <param name="DeltaPercent">Разница в процентах; <c>null</c>, если в предыдущем периоде 0 минут.</param>
-public sealed record PeriodComparison(Period Previous, int PreviousTotalMinutes, int DeltaMinutes, double? DeltaPercent);
+public sealed record PeriodComparison(Period Previous, DateOnly ComparedEnd, int PreviousTotalMinutes, int DeltaMinutes, double? DeltaPercent)
+{
+    /// <summary>Сравнивается только начало предыдущего периода (текущий период ещё идёт).</summary>
+    public bool IsPartial => ComparedEnd < Previous.End;
+
+    /// <summary>Число сравниваемых дней.</summary>
+    public int ComparedDays => ComparedEnd.DayNumber - Previous.Start.DayNumber + 1;
+}
 
 /// <summary>Все показатели периода. Точные формулы — в <c>docs/STATISTICS.md</c>.</summary>
 public sealed record PeriodStatistics
@@ -52,7 +63,10 @@ public sealed record PeriodStatistics
     /// <summary>Среднее время окончания (по последней записи дня); больше 1440 — после полуночи.</summary>
     public required double? AverageEndMinute { get; init; }
 
-    /// <summary>Число рабочих (по настройкам) дней недели в учитываемой части периода.</summary>
+    /// <summary>
+    /// Число рабочих (по настройкам) дней недели в учитываемой части периода,
+    /// начиная не раньше даты первой записи (до неё трекер не вёлся).
+    /// </summary>
     public required int NormDays { get; init; }
 
     public required int NormMinutes { get; init; }

@@ -21,6 +21,19 @@ public class RuFormatTests
     [InlineData(1560, "02:00 +1")]
     public void ClockWithDayOffset(int minute, string expected) => Assert.Equal(expected, RuFormat.ClockWithDayOffset(minute));
 
+    [Theory]
+    [InlineData(1, "запись")]
+    [InlineData(2, "записи")]
+    [InlineData(4, "записи")]
+    [InlineData(5, "записей")]
+    [InlineData(11, "записей")]
+    [InlineData(14, "записей")]
+    [InlineData(21, "запись")]
+    [InlineData(22, "записи")]
+    [InlineData(0, "записей")]
+    [InlineData(112, "записей")]
+    public void Plural(long n, string expected) => Assert.Equal(expected, RuFormat.Plural(n, "запись", "записи", "записей"));
+
     [Fact]
     public void Range() => Assert.Equal("22:00 – 02:00 +1", RuFormat.Range(new TimeRange(1320, 1560)));
 

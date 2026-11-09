@@ -53,6 +53,25 @@ public static class RuFormat
         return CultureInfo.ReadOnly(culture);
     }
 
+    /// <summary>Склонение по числу: Plural(1, "запись", "записи", "записей") → «запись», 3 → «записи», 11 → «записей».</summary>
+    public static string Plural(long n, string one, string few, string many)
+    {
+        var abs = Math.Abs(n);
+        var mod100 = abs % 100;
+        var mod10 = abs % 10;
+        if (mod100 is >= 11 and <= 14)
+        {
+            return many;
+        }
+
+        return mod10 switch
+        {
+            1 => one,
+            2 or 3 or 4 => few,
+            _ => many,
+        };
+    }
+
     public static string Capitalize(string s) => s.Length == 0 ? s : char.ToUpperInvariant(s[0]) + s[1..];
 
     public static string DayShort(DayOfWeek day) => DaysShort[(int)day];
