@@ -1,0 +1,15 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/WorkTimeTracker.App/WorkTimeTracker.App.csproj" />
+    <Project Path="src/WorkTimeTracker.Core/WorkTimeTracker.Core.csproj" />
+    <Project Path="src/WorkTimeTracker.Data/WorkTimeTracker.Data.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/WorkTimeTracker.App.Tests/WorkTimeTracker.App.Tests.csproj" />
+    <Project Path="tests/WorkTimeTracker.Core.Tests/WorkTimeTracker.Core.Tests.csproj" />
+    <Project Path="tests/WorkTimeTracker.Data.Tests/WorkTimeTracker.Data.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/IconGen/IconGen.csproj" />
+  </Folder>
+</Solution>

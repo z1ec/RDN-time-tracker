@@ -1,0 +1,16 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="WorkTimeTracker.App.Views.MainWindow"
+        Title="WorkTime Tracker"
+        Width="1200" Height="780" MinWidth="900" MinHeight="600"
+        WindowStartupLocation="CenterScreen">
+  <SplitView IsPaneOpen="False" DisplayMode="CompactInline" CompactPaneLength="56">
+    <SplitView.Pane>
+      <StackPanel Margin="8" Spacing="8">
+        <Button Content="Ж" AutomationProperties.Name="Журнал" />
+        <Button Content="С" AutomationProperties.Name="Статистика" />
+      </StackPanel>
+    </SplitView.Pane>
+    <TextBlock Text="WorkTime Tracker" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="24" />
+  </SplitView>
+</Window>

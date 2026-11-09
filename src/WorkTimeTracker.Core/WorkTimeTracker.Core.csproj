@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Чистый домен: без зависимостей от UI и БД -->
+  <PropertyGroup>
+    <RootNamespace>WorkTimeTracker.Core</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="WorkTimeTracker.Core.Tests" />
+  </ItemGroup>
+</Project>

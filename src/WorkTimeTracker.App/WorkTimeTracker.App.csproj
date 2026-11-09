@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Desktop-приложение на Avalonia (MVVM) + CLI-режимы version / self-test -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <RootNamespace>WorkTimeTracker.App</RootNamespace>
+    <AssemblyName>WorkTimeTracker</AssemblyName>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- win-x64 указан, чтобы lock-файл содержал граф для публикации exe -->
+    <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
+    <BuiltInComInteropSupport>false</BuiltInComInteropSupport>
+    <!-- LibraryImport (AttachConsole) генерирует unsafe-код -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <AvaloniaResource Include="Assets\**" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\WorkTimeTracker.Core\WorkTimeTracker.Core.csproj" />
+    <ProjectReference Include="..\WorkTimeTracker.Data\WorkTimeTracker.Data.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Avalonia" />
+    <PackageReference Include="Avalonia.Desktop" />
+    <PackageReference Include="Avalonia.Themes.Fluent" />
+    <PackageReference Include="Avalonia.Fonts.Inter" />
+    <PackageReference Include="CommunityToolkit.Mvvm" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+    <PackageReference Include="Serilog" />
+    <PackageReference Include="Serilog.Sinks.File" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="WorkTimeTracker.App.Tests" />
+  </ItemGroup>
+  <!-- Нативные .pdb из SkiaSharp/HarfBuzzSharp не нужны пользователю — не кладём их рядом с exe -->
+  <Target Name="RemovePdbFromPublish" AfterTargets="ComputeResolvedFilesToPublishList">
+    <ItemGroup>
+      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)" Condition="'%(Extension)' == '.pdb'" />
+    </ItemGroup>
+  </Target>
+</Project>

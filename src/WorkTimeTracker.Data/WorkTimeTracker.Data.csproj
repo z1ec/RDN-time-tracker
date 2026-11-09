@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Хранилище: SQLite + Dapper, миграции, бэкапы, пути к данным -->
+  <PropertyGroup>
+    <RootNamespace>WorkTimeTracker.Data</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\WorkTimeTracker.Core\WorkTimeTracker.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Data.Sqlite" />
+    <PackageReference Include="Dapper" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Migrations\*.sql" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="WorkTimeTracker.Data.Tests" />
+  </ItemGroup>
+</Project>

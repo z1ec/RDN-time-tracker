@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Утилита: рисует иконку приложения через SkiaSharp и собирает .ico/.png -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>IconGen</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="SkiaSharp" />
+  </ItemGroup>
+</Project>

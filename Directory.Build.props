@@ -1,0 +1,25 @@
+<Project>
+  <!-- Общие настройки для всех проектов решения -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
+    <InvariantGlobalization>false</InvariantGlobalization>
+    <SatelliteResourceLanguages>ru;en</SatelliteResourceLanguages>
+
+    <!-- Версия продукта; в CI переопределяется через -p:Version=X.Y.Z -->
+    <Version>1.0.0</Version>
+    <Product>WorkTime Tracker</Product>
+    <Company>WorkTime Tracker</Company>
+    <Authors>Vladimir</Authors>
+    <Copyright>© 2026 Vladimir, MIT</Copyright>
+    <RepositoryUrl>https://github.com/z1ec/RDN-time-tracker</RepositoryUrl>
+
+    <!-- Воспроизводимые сборки: lock-файлы коммитятся, в CI restore идёт в locked-mode -->
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+</Project>

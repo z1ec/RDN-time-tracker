@@ -1,0 +1,101 @@
+# CI: тесты на Linux + публикация и self-test настоящего Windows-exe.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  DOTNET_CLI_UI_LANGUAGE: en
+
+jobs:
+  test:
+    name: Тесты (Linux)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+          cache: true
+          cache-dependency-path: '**/packages.lock.json'
+
+      - name: Restore (locked mode)
+        run: dotnet restore WorkTimeTracker.slnx --locked-mode
+
+      - name: Проверка форматирования
+        run: dotnet format WorkTimeTracker.slnx --verify-no-changes --no-restore
+
+      - name: Сборка
+        run: dotnet build WorkTimeTracker.slnx -c Release --no-restore
+
+      - name: Тесты и покрытие (порог Core ≥ 90%)
+        run: BUILD_ARGS=--no-build scripts/test.sh
+
+      - name: Результаты тестов
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results
+          path: TestResults/
+          retention-days: 7
+
+  windows:
+    name: Windows exe + self-test
+    runs-on: windows-latest
+    needs: test
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+          cache: true
+          cache-dependency-path: '**/packages.lock.json'
+
+      - name: Restore (locked mode)
+        run: dotnet restore WorkTimeTracker.slnx --locked-mode
+
+      - name: Публикация win-x64 single-file
+        shell: bash
+        run: scripts/publish-win.sh "1.0.0-ci.${{ github.run_number }}"
+
+      - name: Lock-файлы не изменились
+        shell: bash
+        run: git diff --exit-code -- '**/packages.lock.json'
+
+      - name: Версия exe
+        shell: pwsh
+        run: |
+          $p = Start-Process -FilePath "artifacts/win-x64/WorkTimeTracker.exe" -ArgumentList "--version" -Wait -PassThru
+          if ($p.ExitCode -ne 0) { exit 1 }
+
+      - name: Self-test настоящего exe
+        shell: pwsh
+        run: |
+          $dir = Join-Path $env:RUNNER_TEMP "wtt-selftest"
+          $p = Start-Process -FilePath "artifacts/win-x64/WorkTimeTracker.exe" `
+               -ArgumentList "--self-test","--data-dir",$dir -Wait -PassThru
+          Get-Content (Join-Path $dir "self-test.log")
+          if ($p.ExitCode -ne 0) { exit 1 }
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: WorkTimeTracker-win-x64
+          path: artifacts/win-x64/WorkTimeTracker.exe
+          retention-days: 14
