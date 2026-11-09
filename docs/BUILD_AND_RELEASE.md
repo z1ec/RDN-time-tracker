@@ -14,12 +14,13 @@ flowchart LR
     end
     T --> W
     subgraph W["job windows · windows-latest"]
-        W1[restore --locked-mode] --> W2[publish win-x64 single-file] --> W3[lock-файлы не изменились] --> W4["exe --version"] --> W5["exe --self-test"] --> W6[пробная упаковка релиза] --> W7[артефакт WorkTimeTracker-win-x64]
+        W1[restore --locked-mode] --> W0[тесты на Windows] --> W2[publish win-x64 single-file] --> W3[lock-файлы не изменились] --> W4["exe --version"] --> W5["exe --self-test"] --> W6[пробная упаковка релиза] --> W7[артефакт WorkTimeTracker-win-x64]
     end
 ```
 
 - Сводка покрытия по сборкам публикуется в `$GITHUB_STEP_SUMMARY` (`scripts/coverage_summary.py`).
 - Результаты тестов (`.trx`, cobertura) — артефакт `test-results` (7 дней).
+- Тесты запускаются и на `windows-latest` (файловые блокировки и пути там ведут себя иначе, чем на Linux/macOS). Упавшие тесты выводятся аннотациями (`scripts/annotate_test_failures.py`) — их видно на странице запуска и через публичный API без доступа к логам.
 - Главная проверка — **запуск настоящего Windows-exe** в режиме `--self-test`: macOS не может запустить exe, а нативные библиотеки (SQLite, Skia, HarfBuzz) должны корректно распаковываться из single-file. Отчёт `self-test.log` печатается в лог job.
 - `concurrency` отменяет устаревшие запуски той же ветки; `permissions: contents: read`.
 
