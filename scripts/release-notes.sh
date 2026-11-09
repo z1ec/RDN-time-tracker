@@ -7,6 +7,7 @@ VERSION="${1:?Укажите версию, например 1.0.0}"
 NOTES=$(awk -v ver="$VERSION" '
   index($0, "## [" ver "]") == 1 { found = 1; next }
   found && /^## \[/ { exit }
+  found && /^\[[^]]+\]: / { exit }
   found { print }
 ' CHANGELOG.md)
 if [ -z "$(echo "$NOTES" | tr -d '[:space:]')" ]; then

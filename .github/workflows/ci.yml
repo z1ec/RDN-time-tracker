@@ -98,7 +98,8 @@ jobs:
         shell: bash
         run: |
           scripts/package-release.sh "v0.0.0-ci"
-          scripts/release-notes.sh Unreleased > /dev/null
+          LAST=$(grep -m1 -oE '^## \[[0-9]+\.[0-9]+\.[0-9]+\]' CHANGELOG.md | tr -d '#[] ')
+          scripts/release-notes.sh "${LAST:-Unreleased}" > /dev/null
 
       - uses: actions/upload-artifact@v7
         with:
