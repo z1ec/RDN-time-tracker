@@ -6,6 +6,7 @@
     <AssemblyName>WorkTimeTracker</AssemblyName>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\app.ico</ApplicationIcon>
     <!-- win-x64 указан, чтобы lock-файл содержал граф для публикации exe -->
     <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
     <BuiltInComInteropSupport>false</BuiltInComInteropSupport>
