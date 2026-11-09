@@ -1,4 +1,3 @@
-using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using WorkTimeTracker.App.Controls;
@@ -58,6 +57,7 @@ public sealed partial class StatisticsViewModel : ObservableObject
         PeriodLabel = RuFormat.PeriodLabel(Period);
         ChartTitle = "";
         StatusText = "";
+        Kpis = [];
         ChartItems = [];
         WeekdayItems = [];
         HeatmapCells = [];
@@ -97,7 +97,9 @@ public sealed partial class StatisticsViewModel : ObservableObject
     [ObservableProperty]
     public partial PeriodStatistics? Statistics { get; set; }
 
-    public ObservableCollection<KpiCard> Kpis { get; } = [];
+    /// <summary>KPI-карточки; список подменяется целиком при каждом пересчёте.</summary>
+    [ObservableProperty]
+    public partial IReadOnlyList<KpiCard> Kpis { get; set; }
 
     [ObservableProperty]
     public partial string ChartTitle { get; set; }
@@ -243,35 +245,36 @@ public sealed partial class StatisticsViewModel : ObservableObject
 
     private void BuildKpis(PeriodStatistics s)
     {
-        Kpis.Clear();
+        var kpis = new List<KpiCard>(8);
 
-        Kpis.Add(new KpiCard("Итого", DurationFormatter.FormatCompact(s.TotalMinutes), ComparisonCaption(s)));
+        kpis.Add(new KpiCard("Итого", DurationFormatter.FormatCompact(s.TotalMinutes), ComparisonCaption(s)));
 
         var balance = s.BalanceMinutes;
         var balanceCaption = s.NormDays == 0
             ? "норма не задана для этих дней"
             : $"норма {DurationFormatter.FormatShort(s.NormMinutes)} · {(balance >= 0 ? "переработка" : "недоработка")}";
-        Kpis.Add(new KpiCard("Баланс с нормой", (balance > 0 ? "+" : "") + DurationFormatter.FormatCompact(balance), balanceCaption,
+        kpis.Add(new KpiCard("Баланс с нормой", (balance > 0 ? "+" : "") + DurationFormatter.FormatCompact(balance), balanceCaption,
             s.NormDays == 0 ? KpiTone.Neutral : balance >= 0 ? KpiTone.Positive : KpiTone.Negative));
 
-        Kpis.Add(new KpiCard("Рабочих дней", s.WorkDays.ToString(RuFormat.Culture),
+        kpis.Add(new KpiCard("Рабочих дней", s.WorkDays.ToString(RuFormat.Culture),
             $"из {s.CalendarDays} {RuFormat.Plural(s.CalendarDays, "календарного", "календарных", "календарных")} · записей: {s.EntryCount}"));
 
-        Kpis.Add(new KpiCard("В среднем за рабочий день", DurationFormatter.FormatCompact(Round(s.AveragePerWorkDay)),
+        kpis.Add(new KpiCard("В среднем за рабочий день", DurationFormatter.FormatCompact(Round(s.AveragePerWorkDay)),
             $"за календарный день: {DurationFormatter.Format(Round(s.AveragePerCalendarDay))}"));
 
-        Kpis.Add(new KpiCard("Средняя запись", DurationFormatter.FormatCompact(Round(s.AverageEntryMinutes)),
+        kpis.Add(new KpiCard("Средняя запись", DurationFormatter.FormatCompact(Round(s.AverageEntryMinutes)),
             $"{s.EntryCount} {RuFormat.Plural(s.EntryCount, "запись", "записи", "записей")} за период"));
 
-        Kpis.Add(new KpiCard("Начало и конец дня",
+        kpis.Add(new KpiCard("Начало и конец дня",
             s.AverageStartMinute is null ? "—" : $"{StatisticsCalculator.FormatAverageClock(s.AverageStartMinute)}–{StatisticsCalculator.FormatAverageClock(s.AverageEndMinute)}",
             "в среднем по первой и последней записи"));
 
-        Kpis.Add(new KpiCard("Самый длинный день", s.LongestDay is { } l ? DurationFormatter.FormatCompact(l.Minutes) : "—",
+        kpis.Add(new KpiCard("Самый длинный день", s.LongestDay is { } l ? DurationFormatter.FormatCompact(l.Minutes) : "—",
             s.LongestDay is { } ld ? RuFormat.GroupHeader(ld.Date, _entries.Today) : "нет данных"));
 
-        Kpis.Add(new KpiCard("Самый короткий день", s.ShortestDay is { } sh ? DurationFormatter.FormatCompact(sh.Minutes) : "—",
+        kpis.Add(new KpiCard("Самый короткий день", s.ShortestDay is { } sh ? DurationFormatter.FormatCompact(sh.Minutes) : "—",
             s.ShortestDay is { } sd ? RuFormat.GroupHeader(sd.Date, _entries.Today) : "нет данных"));
+        Kpis = kpis;
     }
 
     private void BuildCharts(PeriodStatistics s, DateOnly today)

@@ -156,4 +156,37 @@ public class ScreenshotTests
             await SaveAsync(window, "about-dark.png");
         }
     }
+
+    [AvaloniaFact]
+    public async Task Journal_UndoToast_Dark()
+    {
+        var (host, window) = await OpenAsync(ThemeVariant.Dark);
+        using (host)
+        {
+            var rows = host.Journal.Rows.OfType<ViewModels.EntryRow>().Take(2).ToList();
+            foreach (var row in rows)
+            {
+                host.Journal.SelectedRows.Add(row);
+            }
+
+            await host.Journal.DeleteSelectedCommand.ExecuteAsync(null);
+            await SaveAsync(window, "journal-undo-dark.png");
+        }
+    }
+
+    [AvaloniaFact]
+    public async Task EditDialog_Light()
+    {
+        var (host, window) = await OpenAsync(ThemeVariant.Light);
+        using (host)
+        {
+            var entry = host.Journal.Rows.OfType<ViewModels.EntryRow>().First().Entry;
+            var dialog = new EditEntryWindow { DataContext = new ViewModels.EntryEditorViewModel(entry, host.Entries) };
+            _ = dialog.ShowDialog<bool>(window);
+            await UiTestHelpers.SettleAsync(10);
+            dialog.CaptureRenderedFrame()!.Save(Path.Combine(OutputDir, "edit-dialog-light.png"), new Avalonia.Media.Imaging.PngBitmapEncoderOptions());
+            dialog.Close(false);
+            window.Close();
+        }
+    }
 }

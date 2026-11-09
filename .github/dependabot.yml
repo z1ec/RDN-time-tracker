@@ -1,0 +1,25 @@
+# Обновления зависимостей раз в месяц (P2). Версии NuGet закреплены в Directory.Packages.props.
+version: 2
+updates:
+  - package-ecosystem: nuget
+    directory: "/"
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 5
+    groups:
+      avalonia:
+        patterns: ["Avalonia*"]
+      microsoft:
+        patterns: ["Microsoft.*"]
+      tests:
+        patterns: ["xunit*", "coverlet*", "Microsoft.NET.Test.Sdk"]
+    ignore:
+      # Avalonia.Headless.XUnit 12.x требует xunit.v3 3.x — мажорное обновление xunit только вместе с Avalonia
+      - dependency-name: "xunit.v3"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "xunit.runner.visualstudio"
+        update-types: ["version-update:semver-major"]
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: monthly

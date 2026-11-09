@@ -1,3 +1,4 @@
+using Avalonia.Headless.XUnit;
 using WorkTimeTracker.App.Services;
 using WorkTimeTracker.App.ViewModels;
 using WorkTimeTracker.Core.Model;
@@ -11,7 +12,7 @@ public class SettingsAndAboutTests
 {
     private readonly CancellationToken _ct = TestContext.Current.CancellationToken;
 
-    [Fact]
+    [AvaloniaFact]
     public async Task Settings_ArePersisted()
     {
         using var host = await TestHost.StartAsync();
@@ -30,7 +31,7 @@ public class SettingsAndAboutTests
         await WaitAsync(() => store.LoadAsync(_ct).Result is { DailyNormMinutes: 450, Theme: ThemePreference.Dark } s && s.WorkDays.Contains(DayOfWeek.Saturday));
     }
 
-    [Fact]
+    [AvaloniaFact]
     public async Task Settings_DataLocation_AndFolders()
     {
         using var host = await TestHost.StartAsync();
@@ -61,7 +62,7 @@ public class SettingsAndAboutTests
         Assert.Equal(text, vm.LocationKindText);
     }
 
-    [Fact]
+    [AvaloniaFact]
     public async Task Settings_BackupNow_AndExportAll()
     {
         using var host = await TestHost.StartAsync();
@@ -86,7 +87,7 @@ public class SettingsAndAboutTests
         Assert.Single(host.Interaction.Errors);
     }
 
-    [Fact]
+    [AvaloniaFact]
     public async Task About_ShowsVersionAndLinks()
     {
         using var host = await TestHost.StartAsync();
@@ -104,7 +105,7 @@ public class SettingsAndAboutTests
         Assert.Equal([host.Paths.DataDirectory], host.Interaction.OpenedFolders);
     }
 
-    [Fact]
+    [AvaloniaFact]
     public async Task Main_Navigation()
     {
         using var host = await TestHost.StartAsync();
@@ -123,7 +124,7 @@ public class SettingsAndAboutTests
         Assert.True(vm.IsPaneOpen);
     }
 
-    [Fact]
+    [AvaloniaFact]
     public async Task Main_CorruptDatabase_ShowsFriendlyError_AndKeepsFile()
     {
         using var host = new TestHost();

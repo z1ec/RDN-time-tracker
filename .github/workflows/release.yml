@@ -1,0 +1,85 @@
+# Релиз по тегу vX.Y.Z: тесты → публикация exe с версией из тега → self-test → GitHub Release.
+name: Release
+
+on:
+  push:
+    tags: ['v*.*.*']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  DOTNET_CLI_UI_LANGUAGE: en
+
+jobs:
+  release:
+    name: Windows release
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+          cache: true
+          cache-dependency-path: '**/packages.lock.json'
+
+      - name: Версия из тега
+        id: version
+        shell: bash
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          VERSION="${TAG#v}"
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then echo "Неверный тег: $TAG"; exit 1; fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Restore (locked mode)
+        run: dotnet restore WorkTimeTracker.slnx --locked-mode
+
+      - name: Тесты
+        run: dotnet test WorkTimeTracker.slnx -c Release --no-restore --filter "Category!=Screenshots"
+
+      - name: Публикация win-x64 single-file
+        shell: bash
+        run: scripts/publish-win.sh "${{ steps.version.outputs.version }}"
+
+      - name: Self-test настоящего exe
+        shell: pwsh
+        run: |
+          $dir = Join-Path $env:RUNNER_TEMP "wtt-selftest"
+          $p = Start-Process -FilePath "artifacts/win-x64/WorkTimeTracker.exe" `
+               -ArgumentList "--self-test","--data-dir",$dir -Wait -PassThru
+          Get-Content (Join-Path $dir "self-test.log")
+          if ($p.ExitCode -ne 0) { exit 1 }
+
+      - name: Файлы релиза (exe, zip, SHA256SUMS)
+        shell: bash
+        run: scripts/package-release.sh "${{ steps.version.outputs.tag }}"
+
+      - name: Заметки к релизу из CHANGELOG.md
+        shell: bash
+        run: |
+          scripts/release-notes.sh "${{ steps.version.outputs.version }}" > artifacts/notes.md
+          cat artifacts/notes.md
+
+      - name: GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          V="${{ steps.version.outputs.tag }}"
+          gh release create "$V" \
+            "artifacts/release/WorkTimeTracker-$V-win-x64.exe" \
+            "artifacts/release/WorkTimeTracker-$V-win-x64.zip" \
+            "artifacts/release/SHA256SUMS.txt" \
+            --title "WorkTime Tracker $V" \
+            --notes-file artifacts/notes.md \
+            --verify-tag

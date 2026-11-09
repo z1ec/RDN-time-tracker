@@ -29,6 +29,13 @@
       <SolidColorBrush x:Key="Heat2Brush" Color="#A5B4FC" />
       <SolidColorBrush x:Key="Heat3Brush" Color="#6366F1" />
       <SolidColorBrush x:Key="Heat4Brush" Color="#4338CA" />
+      <!-- Expander «Ввести через форму» в тон карточкам -->
+      <SolidColorBrush x:Key="ExpanderHeaderBackground" Color="#F7F8FC" />
+      <SolidColorBrush x:Key="ExpanderHeaderBackgroundPointerOver" Color="#EFF1F8" />
+      <SolidColorBrush x:Key="ExpanderHeaderBackgroundPressed" Color="#E8EBF5" />
+      <SolidColorBrush x:Key="ExpanderHeaderBorderBrush" Color="#E3E6EF" />
+      <SolidColorBrush x:Key="ExpanderContentBackground" Color="#FAFBFD" />
+      <SolidColorBrush x:Key="ExpanderContentBorderBrush" Color="#E3E6EF" />
     </ResourceDictionary>
     <ResourceDictionary x:Key="Dark">
       <SolidColorBrush x:Key="PageBackgroundBrush" Color="#131418" />
@@ -57,6 +64,12 @@
       <SolidColorBrush x:Key="Heat2Brush" Color="#4338CA" />
       <SolidColorBrush x:Key="Heat3Brush" Color="#6366F1" />
       <SolidColorBrush x:Key="Heat4Brush" Color="#A5B4FC" />
+      <SolidColorBrush x:Key="ExpanderHeaderBackground" Color="#242731" />
+      <SolidColorBrush x:Key="ExpanderHeaderBackgroundPointerOver" Color="#2A2E3A" />
+      <SolidColorBrush x:Key="ExpanderHeaderBackgroundPressed" Color="#303443" />
+      <SolidColorBrush x:Key="ExpanderHeaderBorderBrush" Color="#2D303C" />
+      <SolidColorBrush x:Key="ExpanderContentBackground" Color="#21242D" />
+      <SolidColorBrush x:Key="ExpanderContentBorderBrush" Color="#2D303C" />
     </ResourceDictionary>
   </ResourceDictionary.ThemeDictionaries>
 </ResourceDictionary>

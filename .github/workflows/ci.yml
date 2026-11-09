@@ -94,6 +94,12 @@ jobs:
           Get-Content (Join-Path $dir "self-test.log")
           if ($p.ExitCode -ne 0) { exit 1 }
 
+      - name: Пробная упаковка релиза (как в release.yml)
+        shell: bash
+        run: |
+          scripts/package-release.sh "v0.0.0-ci"
+          scripts/release-notes.sh Unreleased > /dev/null
+
       - uses: actions/upload-artifact@v7
         with:
           name: WorkTimeTracker-win-x64

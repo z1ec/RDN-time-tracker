@@ -1,4 +1,5 @@
 using System.Text;
+using Avalonia.Headless.XUnit;
 using WorkTimeTracker.App.Controls;
 using WorkTimeTracker.App.ViewModels;
 using WorkTimeTracker.Core.Model;
@@ -20,7 +21,7 @@ public class StatisticsViewModelTests
         return host;
     }
 
-    [Fact]
+    [AvaloniaFact]
     public async Task DefaultWeek_KpisAndDailyChart()
     {
         using var host = await WithDataAsync();
@@ -52,7 +53,7 @@ public class StatisticsViewModelTests
         Assert.True(vm.PreviousCommand.CanExecute(null));
     }
 
-    [Fact]
+    [AvaloniaFact]
     public async Task Navigate_PreviousWeek_AndToday()
     {
         using var host = await WithDataAsync();
@@ -73,7 +74,7 @@ public class StatisticsViewModelTests
         await WaitAsync(() => vm.PeriodLabel == "Неделя 9–15 ноября 2026");
     }
 
-    [Fact]
+    [AvaloniaFact]
     public async Task Kinds_Day_Month_Year_AllTime()
     {
         using var host = await WithDataAsync();
@@ -108,7 +109,7 @@ public class StatisticsViewModelTests
         Assert.Equal("7 записей за всё время", vm.Kpis[0].Caption);
     }
 
-    [Fact]
+    [AvaloniaFact]
     public async Task CustomPeriod_ShiftsBySameLength()
     {
         using var host = await WithDataAsync();
@@ -128,7 +129,7 @@ public class StatisticsViewModelTests
         await WaitAsync(() => vm.PeriodLabel == "4–10 ноября 2026");
     }
 
-    [Fact]
+    [AvaloniaFact]
     public async Task LongCustomPeriod_UsesMonthlyChart()
     {
         using var host = await WithDataAsync();
@@ -140,7 +141,7 @@ public class StatisticsViewModelTests
         Assert.Equal("ноя 25", vm.ChartItems[0].Label);
     }
 
-    [Fact]
+    [AvaloniaFact]
     public async Task ExportCsv_WritesPeriodEntries()
     {
         using var host = await WithDataAsync();
@@ -163,7 +164,7 @@ public class StatisticsViewModelTests
         Assert.Equal("Не удалось сохранить файл", host.Interaction.Errors.Single().Title);
     }
 
-    [Fact]
+    [AvaloniaFact]
     public async Task EmptyDatabase_ShowsEmptyState()
     {
         using var host = await TestHost.StartAsync();
@@ -172,7 +173,7 @@ public class StatisticsViewModelTests
         Assert.Equal("нет данных", host.Statistics.Kpis[6].Caption);
     }
 
-    [Fact]
+    [AvaloniaFact]
     public async Task NewEntries_RefreshStatistics()
     {
         using var host = await TestHost.StartAsync();

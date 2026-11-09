@@ -1,3 +1,4 @@
+using Avalonia.Headless.XUnit;
 using WorkTimeTracker.App.ViewModels;
 using WorkTimeTracker.Core.Model;
 
@@ -6,7 +7,7 @@ namespace WorkTimeTracker.App.Tests;
 /// <summary>ViewModel «Журнала»: F1, F2, F3.4, F5, F6, F7.2. «Сегодня» — вторник 10.11.2026 14:37.</summary>
 public class JournalViewModelTests
 {
-    [Fact]
+    [AvaloniaFact]
     public async Task Preview_Valid_Error_Multiline_Empty()
     {
         using var host = await TestHost.StartAsync();
@@ -37,7 +38,7 @@ public class JournalViewModelTests
         Assert.False(vm.AddCommand.CanExecute(null));
     }
 
-    [Fact]
+    [AvaloniaFact]
     public async Task Add_FromQuickInput_UpdatesListAndSummary()
     {
         using var host = await TestHost.StartAsync();
@@ -66,7 +67,7 @@ public class JournalViewModelTests
         Assert.Equal("Сегодня: 9 ч 00 мин · Неделя: 9 ч 00 мин из 40 ч", vm.SummaryText);
     }
 
-    [Fact]
+    [AvaloniaFact]
     public async Task Add_Multiline_IsAtomic_AndShowsOverlap()
     {
         using var host = await TestHost.StartAsync();
@@ -83,7 +84,7 @@ public class JournalViewModelTests
         Assert.Single(await host.Repository.GetAllAsync(TestContext.Current.CancellationToken));
     }
 
-    [Fact]
+    [AvaloniaFact]
     public async Task SelectedDate_IsUsedForInputWithoutDate()
     {
         using var host = await TestHost.StartAsync();
@@ -99,7 +100,7 @@ public class JournalViewModelTests
         Assert.Equal(host.Today, vm.SelectedDay);
     }
 
-    [Fact]
+    [AvaloniaFact]
     public async Task ClearInput_ByEscape()
     {
         using var host = await TestHost.StartAsync();
@@ -109,7 +110,7 @@ public class JournalViewModelTests
         Assert.False(host.Journal.HasPreview);
     }
 
-    [Fact]
+    [AvaloniaFact]
     public async Task Form_NightShift_LiveDuration_AndAdd()
     {
         using var host = await TestHost.StartAsync();
@@ -134,7 +135,7 @@ public class JournalViewModelTests
         Assert.Equal("22:00 – 02:00", row.TimeText);
     }
 
-    [Fact]
+    [AvaloniaFact]
     public async Task Form_Errors_SameAsQuickInput()
     {
         using var host = await TestHost.StartAsync();
@@ -151,7 +152,7 @@ public class JournalViewModelTests
         Assert.Equal("Пересекается с записью 10.11 08:00–10:00", vm.FormError);
     }
 
-    [Fact]
+    [AvaloniaFact]
     public async Task Form_NowButtons_UseClock()
     {
         using var host = await TestHost.StartAsync();
@@ -161,7 +162,7 @@ public class JournalViewModelTests
         Assert.Equal(new TimeSpan(14, 37, 0), host.Journal.FormEnd);
     }
 
-    [Fact]
+    [AvaloniaFact]
     public async Task Delete_Toast_Undo()
     {
         using var host = await TestHost.StartAsync();
@@ -188,7 +189,7 @@ public class JournalViewModelTests
         Assert.Equal("Восстановлено: 2 записи", vm.StatusText);
     }
 
-    [Fact]
+    [AvaloniaFact]
     public async Task Toast_HidesAfter8Seconds_UndoStillAvailable()
     {
         using var host = await TestHost.StartAsync();
@@ -207,7 +208,7 @@ public class JournalViewModelTests
         Assert.True(vm.UndoCommand.CanExecute(null)); // Ctrl+Z работает и после скрытия уведомления
     }
 
-    [Fact]
+    [AvaloniaFact]
     public async Task Undo_UnavailableAfterNextChange()
     {
         using var host = await TestHost.StartAsync();
@@ -223,7 +224,7 @@ public class JournalViewModelTests
         Assert.False(vm.IsUndoToastVisible);
     }
 
-    [Fact]
+    [AvaloniaFact]
     public async Task Delete_NothingSelected_DoesNothing()
     {
         using var host = await TestHost.StartAsync();
@@ -232,7 +233,7 @@ public class JournalViewModelTests
         Assert.False(host.Journal.IsUndoToastVisible);
     }
 
-    [Fact]
+    [AvaloniaFact]
     public async Task Edit_ThroughDialog()
     {
         using var host = await TestHost.StartAsync();
@@ -266,7 +267,7 @@ public class JournalViewModelTests
         Assert.Equal(("09:00 – 10:30", "a2"), (updated.TimeText, updated.Comment));
     }
 
-    [Fact]
+    [AvaloniaFact]
     public async Task Editor_Validation()
     {
         using var host = await TestHost.StartAsync();
@@ -283,7 +284,7 @@ public class JournalViewModelTests
         Assert.Equal(new DateTime(2026, 11, 10), editor.MaxDate.Date);
     }
 
-    [Fact]
+    [AvaloniaFact]
     public async Task Edit_CancelledOrNull_DoesNothing()
     {
         using var host = await TestHost.StartAsync();
@@ -295,7 +296,7 @@ public class JournalViewModelTests
         Assert.NotEqual("Запись изменена", vm.StatusText);
     }
 
-    [Fact]
+    [AvaloniaFact]
     public async Task Search_Cyrillic_CaseInsensitive()
     {
         using var host = await TestHost.StartAsync();
@@ -316,7 +317,7 @@ public class JournalViewModelTests
         await WaitAsync(() => vm.Rows.OfType<EntryRow>().Count() == 3);
     }
 
-    [Fact]
+    [AvaloniaFact]
     public async Task ShowMore_LoadsOlderDays()
     {
         using var host = await TestHost.StartAsync();
@@ -334,7 +335,7 @@ public class JournalViewModelTests
         Assert.False(vm.HasMore);
     }
 
-    [Fact]
+    [AvaloniaFact]
     public async Task OlderYear_HeaderHasYear()
     {
         using var host = await TestHost.StartAsync();
@@ -347,7 +348,7 @@ public class JournalViewModelTests
         Assert.Equal("Вс, 28 декабря 2025", vm.Rows.OfType<DayHeaderRow>().Single().Title);
     }
 
-    [Fact]
+    [AvaloniaFact]
     public async Task SettingsChange_UpdatesSummaryNorm()
     {
         using var host = await TestHost.StartAsync();
