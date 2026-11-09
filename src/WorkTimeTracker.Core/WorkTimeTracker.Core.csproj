@@ -2,6 +2,8 @@
   <!-- Чистый домен: без зависимостей от UI и БД -->
   <PropertyGroup>
     <RootNamespace>WorkTimeTracker.Core</RootNamespace>
+    <!-- Как у App: публикация exe восстанавливает зависимости под win-x64, lock-файл должен это знать -->
+    <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
   </PropertyGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="WorkTimeTracker.Core.Tests" />

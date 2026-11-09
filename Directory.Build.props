@@ -21,5 +21,8 @@
     <!-- Воспроизводимые сборки: lock-файлы коммитятся, в CI restore идёт в locked-mode -->
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <!-- При публикации с PublishSingleFile анализатор single-file добавляет в lock-файлы пакет ILLink.Tasks,
+         версия которого зависит от установленного SDK, и restore в locked-mode на CI ломается. -->
+    <EnableSingleFileAnalyzer>false</EnableSingleFileAnalyzer>
   </PropertyGroup>
 </Project>

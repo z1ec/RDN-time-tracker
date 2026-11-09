@@ -2,6 +2,8 @@
   <!-- Хранилище: SQLite + Dapper, миграции, бэкапы, пути к данным -->
   <PropertyGroup>
     <RootNamespace>WorkTimeTracker.Data</RootNamespace>
+    <!-- Как у App: публикация exe восстанавливает зависимости под win-x64, lock-файл должен это знать -->
+    <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\WorkTimeTracker.Core\WorkTimeTracker.Core.csproj" />
