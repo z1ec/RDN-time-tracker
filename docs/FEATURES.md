@@ -10,7 +10,7 @@
 | F1.1 | Грамматика `[дата] начало разделитель конец [комментарий]`, формы времени, `сейчас`/`now` (P1), дата `dd.MM[.yyyy]`, прошлый год для будущей `dd.MM`, второй интервал, ночная смена, `24:00` только в конце, 0 < длительность ≤ 24 ч, запрет будущих дат | ✅ | `Core/Parsing/QuickEntryParser.cs`, `Core/Validation/EntryRules.cs`, `Core/Model/TimeRange.cs` | `Core.Tests/QuickEntryParserTests.cs`, `EntryRulesTests.cs` |
 | F1.2 | Многострочная вставка, атомарное добавление, ошибки «Строка N: …» | ✅ | `QuickEntryParser.ParseMany`, `Core/Services/EntryService.AddFromTextAsync`, `Data/EntryRepository.AddAsync` (одна транзакция), `App/Views/JournalView` (многострочное поле, Enter/Shift+Enter) | `Core.Tests/QuickEntryParserBatchTests.cs`, `EntryServiceTests.AddFromText_Multiline_*`, `Data.Tests/EntryRepositoryTests.Add_IsAtomic`, `App.Tests/JournalViewModelTests.Add_Multiline_*`, `HeadlessSmokeTests.ShiftEnter_*` |
 | F1.3 | Живой предпросмотр, ошибка красным с фрагментом, «Добавить»/Enter недоступны при ошибке | ✅ | `App/ViewModels/JournalViewModel.UpdatePreview`, `ParseError.DisplayText`, `JournalView.axaml` | `App.Tests/JournalViewModelTests.Preview_*`, `HeadlessSmokeTests.Window_Opens_TypeAndEnter_AddsRow`, `QuickEntryParserTests.Error_*` |
-| F1.4 | Таблица эталонных примеров, ≥ 40 кейсов | ✅ | — | `QuickEntryParserTests.Valid` (38) + `Invalid` (33) + пустые (4) + отдельные проверки |
+| F1.4 | Таблица эталонных примеров, ≥ 40 кейсов | ✅ | — | `QuickEntryParserTests.Valid` (38) + `Invalid` (35) + пустые (4) + отдельные проверки |
 
 Фокус в поле при запуске — `JournalView.FocusQuickInput` (проверяется в `HeadlessSmokeTests`).
 
@@ -21,7 +21,7 @@
 | F2.1 | Дата (`CalendarDatePicker`, по умолчанию сегодня, будущие недоступны) | ✅ | `JournalView.axaml` (Expander «Ввести через форму», `DisplayDateEnd`), `JournalViewModel.SelectedDate/MaxDate` | `JournalViewModelTests.SelectedDate_*` |
 | F2.2 | Начало/конец — `TimePicker` 24 ч, шаг 1 мин, кнопки «Сейчас» | ✅ | `JournalView.axaml`, `JournalViewModel.SetFormStartNow/SetFormEndNow` | `JournalViewModelTests.Form_NowButtons_UseClock` |
 | F2.3 | Комментарий до 500 символов со счётчиком | ✅ | `MaxLength=500`, `JournalViewModel.FormCommentCounter` | `JournalViewModelTests.Form_NightShift_*` |
-| F2.4 | Живой расчёт длительности, «+1 день» | ✅ | `JournalViewModel.UpdateFormPreview`, `FormHelpers.DurationWithNextDay` | `JournalViewModelTests.Form_NightShift_LiveDuration_AndAdd` |
+| F2.4 | Живой расчёт длительности, «+1 день»; 00:00–00:00 — целые сутки | ✅ | `JournalViewModel.UpdateFormPreview`, `FormHelpers.DurationWithNextDay` | `JournalViewModelTests.Form_NightShift_LiveDuration_AndAdd` |
 | F2.5 | «Добавить», та же валидация (один доменный сервис) | ✅ | `EntryService.BuildDraft` → `EntryRules.CreateDraft`; `EntryService.AddAsync` | `EntryServiceTests.Form_UsesSameRules`, `JournalViewModelTests.Form_Errors_SameAsQuickInput` |
 
 ## F3. Статистика (P0, если не указано иное)
@@ -83,7 +83,7 @@
 | F7.8 | Тема: системная по умолчанию, светлая и тёмная | ✅ | `ThemeService`, `Styles/Theme.axaml` | `SettingsAndAboutTests.ThemeService_Maps`, скриншоты светлой и тёмной темы |
 | F7.9 | Иконка exe и окна | ✅ | `tools/IconGen`, `App/Assets/app.ico`, `ApplicationIcon`, `Window.Icon` | визуально (`Assets/icon-256.png`) |
 | F7.10 | Глобальная обработка ошибок, логи `logs\app-YYYYMMDD.log` | ✅ | `App.axaml.cs` (`InstallErrorHandlers`), `AppLogging` | ручная проверка; логирование ошибок экспорта/бэкапа покрыто тестами ViewModel |
-| F7.11 | `--version`, `--data-dir`, `--self-test` (код 0/1, `self-test.log`) | ✅ | `Program.cs`, `CommandLineOptions`, `SelfTest` | `CommandLineOptionsTests`, `SelfTestTests`; CI запускает настоящий exe |
+| F7.11 | `--version`, `--data-dir`, `--self-test` (код 0/1, `self-test.log`); `--data-dir` без пути — ошибка и код 1; self-test без `--data-dir` — во `%TEMP%` (см. DATA_MODEL.md) | ✅ | `Program.cs`, `CommandLineOptions`, `SelfTest` | `CommandLineOptionsTests`, `SelfTestTests`; CI запускает настоящий exe |
 
 ## Нефункциональные требования
 

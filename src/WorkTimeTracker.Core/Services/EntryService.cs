@@ -53,7 +53,10 @@ public sealed class EntryService(IEntryRepository repository, TimeProvider time)
         return EntryOperationResult.Ok(added);
     }
 
-    /// <summary>Строит черновик из значений формы (F2) — те же правила, что у быстрого ввода.</summary>
+    /// <summary>
+    /// Строит черновик из значений формы (F2) и диалога редактирования (F6.3) — те же правила, что у быстрого ввода.
+    /// В TimePicker нет «24:00», поэтому 00:00–00:00 означает целые сутки (как <c>0000 2400</c>).
+    /// </summary>
     public Result<EntryDraft> BuildDraft(DateOnly date, TimeSpan start, TimeSpan end, string? comment)
     {
         var startMinute = (int)start.TotalMinutes;
@@ -61,6 +64,11 @@ public sealed class EntryService(IEntryRepository repository, TimeProvider time)
         if (startMinute is < 0 or >= TimeRange.MinutesPerDay || endMinute is < 0 or > TimeRange.MinutesPerDay)
         {
             return Result<EntryDraft>.Fail(QuickEntryParser.Messages.HoursRange);
+        }
+
+        if (startMinute == 0 && endMinute == 0)
+        {
+            endMinute = TimeRange.MinutesPerDay;
         }
 
         return EntryRules.CreateDraft(date, startMinute, endMinute, comment, Today);

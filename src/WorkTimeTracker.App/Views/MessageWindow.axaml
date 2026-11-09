@@ -2,6 +2,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:views="using:WorkTimeTracker.App.Views"
         x:Class="WorkTimeTracker.App.Views.MessageWindow"
+        x:DataType="views:MessageWindow"
         Title="WorkTime Tracker"
         Icon="avares://WorkTimeTracker/Assets/app.ico"
         SizeToContent="Height" Width="520" CanResize="False"

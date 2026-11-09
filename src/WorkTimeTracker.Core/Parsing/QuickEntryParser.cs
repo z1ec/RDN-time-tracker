@@ -198,13 +198,13 @@ public sealed partial class QuickEntryParser(TimeProvider time)
             return Error(notRecognized, s, tokenStart, word.Length);
         }
 
-        if (!char.IsDigit(s[i]))
+        if (!char.IsAsciiDigit(s[i]))
         {
             var wordEnd = WordEnd(s, tokenStart);
             return Error(notRecognized, s, tokenStart, Math.Max(1, wordEnd - tokenStart));
         }
 
-        while (i < s.Length && (char.IsDigit(s[i]) || s[i] == ':' || s[i] == '.'))
+        while (i < s.Length && (char.IsAsciiDigit(s[i]) || s[i] == ':' || s[i] == '.'))
         {
             i++;
         }
@@ -333,13 +333,13 @@ public sealed partial class QuickEntryParser(TimeProvider time)
         return i;
     }
 
-    [GeneratedRegex(@"^(\d{1,2})\.(\d{1,2})(?:\.(\d{4}))?$", RegexOptions.CultureInvariant)]
+    [GeneratedRegex(@"^([0-9]{1,2})\.([0-9]{1,2})(?:\.([0-9]{4}))?$", RegexOptions.CultureInvariant)]
     private static partial Regex DateRegex();
 
-    [GeneratedRegex(@"^(\d{1,2}):(\d{2})$", RegexOptions.CultureInvariant)]
+    [GeneratedRegex(@"^([0-9]{1,2}):([0-9]{2})$", RegexOptions.CultureInvariant)]
     private static partial Regex ColonTimeRegex();
 
-    [GeneratedRegex(@"^\d+$", RegexOptions.CultureInvariant)]
+    [GeneratedRegex(@"^[0-9]+$", RegexOptions.CultureInvariant)]
     private static partial Regex DigitsRegex();
 
     /// <summary>
@@ -347,7 +347,7 @@ public sealed partial class QuickEntryParser(TimeProvider time)
     /// за которыми идёт ещё одно время (например, «14 18» или «14-18»).
     /// </summary>
     [GeneratedRegex(
-        @"^(?:(?:\d{3,4}|\d{1,2}:\d{2})(?=$|[\s\-–—])|\d{1,2}\s*[\s\-–—]\s*(?:\d{1,4}|\d{1,2}:\d{2})(?=$|\s))",
+        @"^(?:(?:[0-9]{3,4}|[0-9]{1,2}:[0-9]{2})(?=$|[\s\-–—])|[0-9]{1,2}\s*[\s\-–—]\s*(?:[0-9]{1,4}|[0-9]{1,2}:[0-9]{2})(?=$|\s))",
         RegexOptions.CultureInvariant)]
     private static partial Regex SecondIntervalRegex();
 

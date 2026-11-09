@@ -285,6 +285,21 @@ public class JournalViewModelTests
     }
 
     [AvaloniaFact]
+    public async Task Editor_FullDayEntry_CanBeSaved()
+    {
+        using var host = await TestHost.StartAsync();
+        host.Journal.QuickInput = "0000 2400 дежурство";
+        await host.Journal.AddCommand.ExecuteAsync(null);
+        var editor = new EntryEditorViewModel(host.Journal.Rows.OfType<EntryRow>().Single().Entry, host.Entries);
+        Assert.True(editor.CanSave);
+        Assert.Equal("24 ч 00 мин", editor.DurationText);
+        editor.Comment = "дежурство сутки";
+        Assert.True(await editor.SaveAsync());
+        var saved = (await host.Repository.GetAllAsync(TestContext.Current.CancellationToken)).Single();
+        Assert.Equal((0, 1440, "дежурство сутки"), (saved.StartMinute, saved.EndMinute, saved.Comment));
+    }
+
+    [AvaloniaFact]
     public async Task Edit_CancelledOrNull_DoesNothing()
     {
         using var host = await TestHost.StartAsync();

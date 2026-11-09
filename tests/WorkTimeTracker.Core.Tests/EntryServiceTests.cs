@@ -92,6 +92,14 @@ public class EntryServiceTests
     }
 
     [Fact]
+    public void Form_MidnightToMidnight_IsFullDay()
+    {
+        var draft = _service.BuildDraft(Today, TimeSpan.Zero, TimeSpan.Zero, "дежурство");
+        Assert.True(draft.IsSuccess);
+        Assert.Equal((0, 1440), (draft.Value!.Range.StartMinute, draft.Value.Range.EndMinute));
+    }
+
+    [Fact]
     public async Task Add_RevalidatesDraft()
     {
         var future = new EntryDraft(Today.AddDays(2), new TimeRange(0, 10), "");

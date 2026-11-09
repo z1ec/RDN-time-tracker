@@ -21,6 +21,16 @@ internal static class Program
         CultureInfo.CurrentUICulture = RuFormat.Culture;
 
         var options = CommandLineOptions.Parse(args);
+        if (options.Errors.Count > 0)
+        {
+            ConsoleAttacher.TryAttachToParent();
+            foreach (var error in options.Errors)
+            {
+                Console.Error.WriteLine(error);
+            }
+
+            return 1;
+        }
 
         if (options.ShowVersion)
         {
@@ -36,8 +46,7 @@ internal static class Program
         }
 
         App.StartupOptions = options;
-        BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
-        return 0;
+        return BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
     }
 
     /// <summary>Конфигурация Avalonia; используется также дизайнером.</summary>
