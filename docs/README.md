@@ -32,3 +32,4 @@
 | [0006](adr/0006-self-contained-single-file.md) | self-contained single-file exe без trimming |
 | [0007](adr/0007-no-overlaps.md) | запрет пересечений записей |
 | [0008](adr/0008-dotnet-10-lts.md) | .NET 10 LTS вместо .NET 11 |
+| [0009](adr/0009-notepad.md) | блокнот: листы поверх записей, «живой» архив, отмена по активной вкладке |

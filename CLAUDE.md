@@ -1,7 +1,7 @@
 # CLAUDE.md — WorkTime Tracker
 
 Трекер рабочего времени для Windows на C# / .NET 10 / Avalonia 12. Пользователь вводит периоды
-строкой (`0900 1800 созвон`) или через форму, смотрит статистику (норма, сравнение, графики);
+строкой (`0900 1800 созвон`) или через форму, ведёт «Блокнот» (лист с суммой и архивом), смотрит статистику;
 данные — в локальной SQLite. Разработка и тесты — на macOS/Linux, Windows-exe собирает GitHub Actions.
 Репозиторий: https://github.com/z1ec/RDN-time-tracker (папка — клон существующего репо владельца).
 
@@ -31,11 +31,13 @@
   - `Validation/EntryRules` (единые правила), `EntryValidator` (пересечения);
   - `Statistics/` — `PeriodNavigator`, `StatisticsCalculator` (`docs/STATISTICS.md`);
   - `Formatting/` — `RuFormat`, `DurationFormatter`; `Export/CsvExporter`;
-  - `Services/EntryService` — сценарии добавления/изменения/удаления поверх `IEntryRepository`.
+  - `Services/EntryService` — сценарии добавления/изменения/удаления поверх `IEntryRepository`;
+  - `Services/NotepadService` + `Model/NotepadSheet` + `Formatting/NotepadFormat` — блокнот (F8, ADR-0009).
 - `src/WorkTimeTracker.Data` — `DataPaths`, `SqliteConnectionFactory`, `Migrator` + `Migrations/*.sql`,
-  `EntryRepository`, `SettingsStore`, `BackupService`, `DatabaseInitializer` (`docs/DATA_MODEL.md`).
+  `EntryRepository`, `NotepadRepository`, `SettingsStore`, `BackupService`, `DatabaseInitializer` (`docs/DATA_MODEL.md`).
 - `src/WorkTimeTracker.App` — `Program.cs` (культура, CLI), `App.axaml.cs` (запуск, логи, ошибки),
-  `Services/AppComposition` (DI; `AddCoreServices` общий с self-test), `ViewModels/`, `Views/`,
+  `Services/AppComposition` (DI; `AddCoreServices` общий с self-test), `ViewModels/`, `Views/`
+  (`EntryInput*` — общий ввод «Журнала» и «Блокнота», `UndoToast*` — общая отмена, `Notepad*` — вкладка),
   `Controls/` (`BarChart`, `YearHeatmap`), `Styles/` (`Theme.axaml` — цвета, `Icons.axaml`, `AppStyles.axaml`).
 - `tests/` — Core.Tests (парсер, статистика…), Data.Tests (временные БД), App.Tests (`TestHost` —
   приложение без окна с `FakeTimeProvider`; ViewModel-тесты, headless smoke, `ScreenshotTests`, `DemoData`).
@@ -49,6 +51,12 @@
 - **Пересечения** — только через `EntryValidator` в абсолютных минутах (соседние дни ±1); касание допустимо.
 - **`TimeProvider` везде** вместо `DateTime.Now`/`Today`; «сегодня» — `EntryService.Today`.
 - **Мягкое удаление:** каждая выборка из `entries` — с `deleted_at IS NULL`. Отмена — только последнего удаления, пока не было других изменений.
+- **Блокнот (F8):** листы `notepad_sheets` + привязки `notepad_items` поверх `entries`; `entries` блокнот не меняет и не
+  удаляет (только добавление и правка через `EntryService`). Запись + привязка — одна транзакция
+  (`NotepadRepository.AddEntriesAsync`). Текущий лист один (уникальный индекс), создаётся лениво. Видимые записи листа:
+  `removed_at IS NULL` и `entries.deleted_at IS NULL`; архив — «живой» JOIN, не снимок. ✕ в блокноте ≠ удаление в журнале.
+- **Отмена:** у «Журнала» и «Блокнота» свой `UndoToastViewModel`; `Ctrl+Z` → `MainWindowViewModel.ActiveUndo` (активная вкладка).
+  «Блокнот» поднимает `AppEvents.EntriesChanged` только когда меняются сами записи (добавление, правка).
 - **Миграции только добавляются** (`NNNN_*.sql`, подряд с 1); существующие не редактировать. БД никогда не удалять и не пересоздавать автоматически.
 - **Кириллица:** `LOWER`/`LIKE` в SQLite — только ASCII → поиск фильтруется в C# (`RuFormat.Culture.CompareInfo`).
 - **Культура:** отображение только через `RuFormat` (явные русские названия поверх ru-RU — одинаково на NLS/ICU).

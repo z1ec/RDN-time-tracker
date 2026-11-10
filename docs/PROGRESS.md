@@ -43,7 +43,7 @@
 | 3 | Логика и ViewModel: S1–S12, отмена, связь с «Журналом» | ✅ | `NotepadViewModelTests` — 24 теста |
 | 4 | UI: вкладка, плашка, архив, горячие клавиши, пустые состояния, headless smoke | ✅ | `NotepadSmokeTests` — 4 теста |
 | 5 | Self-test и скриншоты | ✅ | self-test: +6 проверок блокнота; `notepad-light.png`, `notepad-archive-dark.png`, остальные пересняты |
-| 6 | Документация (§7 задания) | ⬜ | |
+| 6 | Документация (§7 задания) | ✅ | ADR-0009, FEATURES (F8 + S1–S12), DATA_MODEL, ARCHITECTURE, README и др. |
 | 7 | Независимое ревью | ⬜ | |
 | 8 | Релиз v1.1.0 | ⬜ | |
 
