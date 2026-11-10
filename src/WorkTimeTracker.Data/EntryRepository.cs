@@ -21,21 +21,7 @@ public sealed class EntryRepository(SqliteConnectionFactory factory, TimeProvide
             c =>
             {
                 using var tx = c.BeginTransaction();
-                var now = Now();
-                var result = new List<WorkEntry>(drafts.Count);
-                foreach (var d in drafts)
-                {
-                    var id = c.ExecuteScalar<long>(
-                        """
-                        INSERT INTO entries (work_date, start_min, end_min, comment, created_at, updated_at)
-                        VALUES (@date, @start, @end, @comment, @now, @now);
-                        SELECT last_insert_rowid();
-                        """,
-                        new { date = FormatDate(d.Date), start = d.Range.StartMinute, end = d.Range.EndMinute, comment = d.Comment, now },
-                        tx);
-                    result.Add(d.ToEntry(id));
-                }
-
+                var result = InsertEntries(c, tx, drafts, Now());
                 tx.Commit();
                 return result;
             },
@@ -119,6 +105,26 @@ public sealed class EntryRepository(SqliteConnectionFactory factory, TimeProvide
             },
             ct);
 
+    /// <summary>Вставка записей внутри чужой транзакции — общая для журнала и блокнота (F8.4).</summary>
+    internal static List<WorkEntry> InsertEntries(SqliteConnection c, SqliteTransaction tx, IReadOnlyList<EntryDraft> drafts, string now)
+    {
+        var result = new List<WorkEntry>(drafts.Count);
+        foreach (var d in drafts)
+        {
+            var id = c.ExecuteScalar<long>(
+                """
+                INSERT INTO entries (work_date, start_min, end_min, comment, created_at, updated_at)
+                VALUES (@date, @start, @end, @comment, @now, @now);
+                SELECT last_insert_rowid();
+                """,
+                new { date = FormatDate(d.Date), start = d.Range.StartMinute, end = d.Range.EndMinute, comment = d.Comment, now },
+                tx);
+            result.Add(d.ToEntry(id));
+        }
+
+        return result;
+    }
+
     internal static string FormatDate(DateOnly d) => d.ToString(DateFormat, CultureInfo.InvariantCulture);
 
     internal static DateOnly ParseDate(string s) => DateOnly.ParseExact(s, DateFormat, CultureInfo.InvariantCulture);
@@ -126,6 +132,9 @@ public sealed class EntryRepository(SqliteConnectionFactory factory, TimeProvide
     /// <summary>Фиксированный формат UTC-времени: строки сравниваются лексикографически.</summary>
     internal static string FormatTimestamp(DateTimeOffset t) =>
         t.ToUniversalTime().ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'", CultureInfo.InvariantCulture);
+
+    internal static DateTimeOffset ParseTimestamp(string s) =>
+        DateTimeOffset.Parse(s, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal);
 
     private string Now() => FormatTimestamp(time.GetUtcNow());
 

@@ -49,6 +49,10 @@ CREATE INDEX ix_entries_deleted_at ON entries(deleted_at) WHERE deleted_at IS NO
 
 CREATE TABLE settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
 CREATE TABLE schema_version (version INTEGER NOT NULL, applied_at TEXT NOT NULL);
+
+-- 0003: блокнот (см. раздел «Блокнот» ниже)
+CREATE TABLE notepad_sheets (...);
+CREATE TABLE notepad_items (...);
 ```
 
 ### Смысл полей `entries`
@@ -84,6 +88,61 @@ CREATE TABLE schema_version (version INTEGER NOT NULL, applied_at TEXT NOT NULL)
 
 Повреждённое или неизвестное значение не приводит к ошибке — берётся значение по умолчанию (`SettingsStore`).
 
+## Блокнот (F8, миграция `0003_notepad.sql`)
+
+Блокнот — отдельная сущность **поверх** записей: таблица `entries` не меняется, записи блокнота — обычные записи журнала (ADR-0009). Код — `NotepadRepository`, тесты — `NotepadRepositoryTests`, `NotepadMigrationTests`.
+
+```sql
+CREATE TABLE notepad_sheets (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    title       TEXT    NOT NULL DEFAULT '' CHECK (length(title) <= 100),
+    started_at  TEXT    NOT NULL,      -- UTC: создание листа (первая запись или ввод названия)
+    cleared_at  TEXT    NULL,          -- UTC: «Очистить всё»; NULL = текущий лист
+    deleted_at  TEXT    NULL           -- удалён из архива (мягко, для отмены)
+);
+CREATE UNIQUE INDEX ux_notepad_sheets_current ON notepad_sheets((1)) WHERE cleared_at IS NULL AND deleted_at IS NULL;
+
+CREATE TABLE notepad_items (
+    entry_id    INTEGER PRIMARY KEY REFERENCES entries(id) ON DELETE CASCADE,  -- запись — максимум в одном листе
+    sheet_id    INTEGER NOT NULL REFERENCES notepad_sheets(id) ON DELETE CASCADE,
+    added_at    TEXT    NOT NULL,      -- UTC
+    removed_at  TEXT    NULL           -- убрана из блокнота кнопкой ✕ (мягко, для отмены)
+);
+CREATE INDEX ix_notepad_items_sheet ON notepad_items(sheet_id);
+```
+
+| Состояние листа | `cleared_at` | `deleted_at` |
+|---|---|---|
+| текущий (в него добавляются записи) | `NULL` | `NULL` |
+| в архиве | время очистки | `NULL` |
+| удалён из архива (можно отменить, через 30 дней удаляется физически) | время очистки | время удаления |
+
+### Инварианты
+
+- **Текущий лист — не больше одного.** Гарантирует уникальный индекс `ux_notepad_sheets_current` (индекс по константе с условием: вторая строка «не очищен и не удалён» нарушает уникальность). Лист создаётся лениво — при первом добавлении записи или при вводе непустого названия.
+- **Запись — максимум в одном листе** (`entry_id` — первичный ключ `notepad_items`).
+- **Видимые записи листа:** `notepad_items.removed_at IS NULL` **и** `entries.deleted_at IS NULL`. Поэтому удаление записи в «Журнале» убирает её из блокнота и архива, а отмена удаления — возвращает, без единого изменения в таблицах блокнота.
+- **Архив «живой»:** записи листа читаются соединением с `entries` — это их текущее состояние, а не снимок.
+- **Запись и привязка создаются одной транзакцией** (`NotepadRepository.AddEntriesAsync`, `BEGIN IMMEDIATE`): запись не может оказаться в журнале без привязки или наоборот.
+- **Отмена «Очистить всё»** = `cleared_at = NULL`; выполняется, только если текущего листа нет (иначе нарушился бы первый инвариант).
+- **Операции блокнота не изменяют и не удаляют строки `entries`.** Исключения: добавление новой записи и правка через `EntryService` (тот же путь, что в «Журнале»).
+- **Каскады:** физическое удаление записи (очистка через 30 дней) удаляет её привязку; физическое удаление листа удаляет его привязки, но не записи.
+
+### Примеры
+
+| Действие | Что меняется в БД |
+|---|---|
+| В блокноте введено `0900 1800 задача` | `INSERT` в `entries`; при необходимости `INSERT` в `notepad_sheets`; `INSERT` в `notepad_items` — одна транзакция |
+| ✕ у записи в блокноте | `notepad_items.removed_at = сейчас` |
+| «Отменить» после ✕ | `notepad_items.removed_at = NULL` |
+| «Очистить всё» | `notepad_sheets.cleared_at = сейчас` |
+| «Удалить из архива» | `notepad_sheets.deleted_at = сейчас` |
+| Удаление записи в «Журнале» | только `entries.deleted_at = сейчас` |
+
+### Очистка мусора (F8.18)
+
+При запуске, вместе с очисткой записей (`DatabaseInitializer`, тот же срок — 30 дней): `NotepadRepository.PurgeAsync` физически удаляет привязки с `removed_at` старше срока и листы с `deleted_at` старше срока. Записи `entries` при этом не затрагиваются.
+
 ## Соединения и надёжность (F4.1, F4.6, F4.7)
 
 - `SqliteConnectionFactory` открывает короткоживущие соединения из пула с `PRAGMA journal_mode=WAL; foreign_keys=ON; busy_timeout=5000`.
@@ -101,7 +160,7 @@ CREATE TABLE schema_version (version INTEGER NOT NULL, applied_at TEXT NOT NULL)
 
 ### Как добавить миграцию
 
-1. Создайте `Migrations/0003_<что_делает>.sql` (имя: 4 цифры, `_`, строчные латинские буквы/цифры/`_`). Существующие файлы **никогда не редактируйте** — у пользователей они уже применены.
+1. Создайте `Migrations/0004_<что_делает>.sql` (имя: 4 цифры, `_`, строчные латинские буквы/цифры/`_`). Существующие файлы **никогда не редактируйте** — у пользователей они уже применены.
 2. Пишите идемпотентно-безопасный SQL для схемы версии N−1; помните, что SQLite ограниченно поддерживает `ALTER TABLE` (для сложных изменений — новая таблица, копирование, переименование).
 3. Добавьте тест в `MigratorTests` (версия N−1 → N) и обновите этот документ.
 

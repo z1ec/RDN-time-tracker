@@ -14,6 +14,7 @@ public sealed class TestDb : IDisposable
         Time.SetLocalTimeZone(TimeZoneInfo.Utc);
         Migrator = new Migrator(Factory, Time);
         Entries = new EntryRepository(Factory, Time);
+        Notepad = new NotepadRepository(Factory, Time);
         Settings = new SettingsStore(Factory);
         Backups = new BackupService(Factory, Paths, Time);
     }
@@ -30,11 +31,13 @@ public sealed class TestDb : IDisposable
 
     public EntryRepository Entries { get; }
 
+    public NotepadRepository Notepad { get; }
+
     public SettingsStore Settings { get; }
 
     public BackupService Backups { get; }
 
-    public DatabaseInitializer Initializer => new(Paths, Factory, Migrator, Backups, Entries, Time);
+    public DatabaseInitializer Initializer => new(Paths, Factory, Migrator, Backups, Entries, Notepad, Time);
 
     public static async Task<TestDb> CreateMigratedAsync()
     {

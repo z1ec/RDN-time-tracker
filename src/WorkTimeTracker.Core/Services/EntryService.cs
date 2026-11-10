@@ -16,6 +16,12 @@ public sealed record EntryOperationResult(IReadOnlyList<WorkEntry> Entries, IRea
 }
 
 /// <summary>
+/// Способ сохранить проверенные черновики. По умолчанию — <see cref="IEntryRepository.AddAsync"/>;
+/// блокнот (F8.4) подставляет вставку записей вместе с привязками к листу в одной транзакции.
+/// </summary>
+public delegate Task<IReadOnlyList<WorkEntry>> EntryInserter(IReadOnlyList<EntryDraft> drafts, CancellationToken ct);
+
+/// <summary>
 /// Сценарии работы с записями: добавление из быстрого ввода (F1) и формы (F2), редактирование (F6.3),
 /// удаление с отменой (F5). Одна точка валидации: <see cref="EntryRules"/> + <see cref="EntryValidator"/>.
 /// </summary>
@@ -28,7 +34,11 @@ public sealed class EntryService(IEntryRepository repository, TimeProvider time)
     public DateOnly Today => _parser.Today;
 
     /// <summary>Добавляет записи из текста (одна или несколько строк). Атомарно: ошибка в любой строке — ничего не добавляется.</summary>
-    public async Task<EntryOperationResult> AddFromTextAsync(string? text, DateOnly selectedDate, CancellationToken ct = default)
+    public Task<EntryOperationResult> AddFromTextAsync(string? text, DateOnly selectedDate, CancellationToken ct = default) =>
+        AddFromTextAsync(text, selectedDate, repository.AddAsync, ct);
+
+    /// <summary>То же, но проверенные записи сохраняет <paramref name="insert"/> (F8.4).</summary>
+    public async Task<EntryOperationResult> AddFromTextAsync(string? text, DateOnly selectedDate, EntryInserter insert, CancellationToken ct = default)
     {
         var batch = _parser.ParseMany(text, selectedDate);
         if (batch.IsEmpty)
@@ -49,7 +59,7 @@ public sealed class EntryService(IEntryRepository repository, TimeProvider time)
             return new EntryOperationResult([], errors);
         }
 
-        var added = await repository.AddAsync([.. batch.Lines.Select(l => l.Draft)], ct).ConfigureAwait(false);
+        var added = await insert([.. batch.Lines.Select(l => l.Draft)], ct).ConfigureAwait(false);
         return EntryOperationResult.Ok(added);
     }
 
@@ -75,7 +85,11 @@ public sealed class EntryService(IEntryRepository repository, TimeProvider time)
     }
 
     /// <summary>Добавляет одну запись (форма F2).</summary>
-    public async Task<EntryOperationResult> AddAsync(EntryDraft draft, CancellationToken ct = default)
+    public Task<EntryOperationResult> AddAsync(EntryDraft draft, CancellationToken ct = default) =>
+        AddAsync(draft, repository.AddAsync, ct);
+
+    /// <summary>То же, но проверенную запись сохраняет <paramref name="insert"/> (F8.4).</summary>
+    public async Task<EntryOperationResult> AddAsync(EntryDraft draft, EntryInserter insert, CancellationToken ct = default)
     {
         var validation = Revalidate(draft);
         if (validation is not null)
@@ -89,7 +103,7 @@ public sealed class EntryService(IEntryRepository repository, TimeProvider time)
             return new EntryOperationResult([], errors);
         }
 
-        return EntryOperationResult.Ok(await repository.AddAsync([draft], ct).ConfigureAwait(false));
+        return EntryOperationResult.Ok(await insert([draft], ct).ConfigureAwait(false));
     }
 
     /// <summary>Изменяет запись (F6.3): та же валидация, пересечения — без учёта самой записи.</summary>

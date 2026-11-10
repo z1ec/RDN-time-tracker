@@ -18,11 +18,14 @@ public static class AppComposition
         services.AddSingleton<Migrator>();
         services.AddSingleton<EntryRepository>();
         services.AddSingleton<IEntryRepository>(sp => sp.GetRequiredService<EntryRepository>());
+        services.AddSingleton<NotepadRepository>();
+        services.AddSingleton<INotepadRepository>(sp => sp.GetRequiredService<NotepadRepository>());
         services.AddSingleton<SettingsStore>();
         services.AddSingleton<ISettingsStore>(sp => sp.GetRequiredService<SettingsStore>());
         services.AddSingleton<BackupService>();
         services.AddSingleton<DatabaseInitializer>();
         services.AddSingleton<EntryService>();
+        services.AddSingleton<NotepadService>();
         services.AddSingleton<SettingsService>();
         services.AddSingleton<AppEvents>();
         return services;

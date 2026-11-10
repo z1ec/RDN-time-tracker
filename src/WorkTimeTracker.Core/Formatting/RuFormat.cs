@@ -162,4 +162,25 @@ public static class RuFormat
 
         return $"{start.Day}–{end.Day} {MonthsGenitive[end.Month - 1]} {end.Year}";
     }
+
+    /// <summary>Короткий диапазон дат: «6 нояб.», «3–6 нояб.», «30 нояб. – 2 дек.», «29 дек. 2025 – 4 янв. 2026».</summary>
+    public static string DateSpanShort(DateOnly start, DateOnly end)
+    {
+        if (start == end)
+        {
+            return DayMonthShort(start);
+        }
+
+        if (start.Year != end.Year)
+        {
+            return $"{DayMonthShort(start)} {start.Year} – {DayMonthShort(end)} {end.Year}";
+        }
+
+        return start.Month != end.Month
+            ? $"{DayMonthShort(start)} – {DayMonthShort(end)}"
+            : $"{start.Day}–{end.Day} {MonthsShort[end.Month - 1]}";
+    }
+
+    /// <summary>«10 нояб., 09:12» — момент времени (локальный) для плашки и архива блокнота.</summary>
+    public static string DayMonthTime(DateTime local) => $"{DayMonthShort(DateOnly.FromDateTime(local))}, {local.Hour:00}:{local.Minute:00}";
 }
