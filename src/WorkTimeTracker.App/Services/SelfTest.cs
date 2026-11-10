@@ -122,9 +122,73 @@ internal static class SelfTest
         var backupCount = (await new EntryRepository(new SqliteConnectionFactory(backup), time).GetAllAsync()).Count;
         r.Check("Резервная копия", File.Exists(backup) && backupCount == 2, backup);
 
+        await RunNotepadChecks(services, r);
+
         r.Check("Русские форматы", RuFormat.Culture.Name == "ru-RU" && RuFormat.DayMonthYear(new DateOnly(2026, 11, 10)) == "10 ноября 2026");
 
         Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+    }
+
+    /// <summary>
+    /// Блокнот (F8): добавить → убрать ✕ и отменить → «Очистить всё» → удалить лист из архива и отменить.
+    /// После добавления ни один шаг не должен менять записи и статистику.
+    /// </summary>
+    private static async Task RunNotepadChecks(ServiceProvider services, Reporter r)
+    {
+        var entries = services.GetRequiredService<EntryService>();
+        var repo = services.GetRequiredService<EntryRepository>();
+        var notepad = services.GetRequiredService<NotepadService>();
+        var today = entries.Today;
+
+        // «Статистика»: итог недели + число и сумма всех записей (то, из чего считаются все показатели).
+        async Task<string> StatsAsync()
+        {
+            var week = PeriodNavigator.ForDate(PeriodKind.Week, today);
+            var stats = StatisticsCalculator.Calculate(week, await repo.GetRangeAsync(week.Start.AddDays(-7), week.End), today, new AppSettings());
+            var all = await repo.GetAllAsync();
+            return $"неделя {DurationFormatter.Format(stats.TotalMinutes)}, записей {all.Count}, всего {DurationFormatter.Format(all.Sum(e => e.DurationMinutes))}";
+        }
+
+        var before = await StatsAsync();
+        var added = await notepad.AddFromTextAsync("1900 2000 блокнот", today);
+        var current = await notepad.GetCurrentAsync();
+        var inJournal = added.IsSuccess ? await repo.GetAsync(added.Entries[0].Id) : null;
+        var stats = await StatsAsync();
+        r.Check("Блокнот: запись добавлена в лист, журнал и статистику",
+            added.IsSuccess && current is { Entries.Count: 1, TotalMinutes: 60 } && inJournal is not null && stats != before,
+            $"{string.Join("; ", added.Errors)}{NotepadFormat.Summary(current, TimeZoneInfo.Local)}; {before} → {stats}");
+        var id = added.Entries[0].Id;
+
+        var overlap = await notepad.AddFromTextAsync("1100 1200", today);
+        r.Check("Блокнот: пересечение с записью журнала отклонено", !overlap.IsSuccess && await StatsAsync() == stats, overlap.Errors.FirstOrDefault());
+
+        await notepad.RemoveAsync([id]);
+        var afterRemove = await notepad.GetCurrentAsync();
+        var keptInJournal = await repo.GetAsync(id) is not null;
+        var statsAfterRemove = await StatsAsync();
+        await notepad.UndoRemoveAsync([id]);
+        var afterUndoRemove = await notepad.GetCurrentAsync();
+        r.Check("Блокнот: ✕ убирает только из блокнота, отмена возвращает",
+            afterRemove is { IsEmpty: true } && keptInJournal && afterUndoRemove is { Entries.Count: 1 } && statsAfterRemove == stats && await StatsAsync() == stats,
+            statsAfterRemove);
+
+        await notepad.SetTitleAsync("Self-test: лист");
+        var sheetId = await notepad.ClearAsync();
+        var archive = await notepad.GetArchiveAsync();
+        r.Check("Блокнот: «Очистить всё» переносит лист в архив",
+            sheetId is not null && await notepad.GetCurrentAsync() is null && archive is [{ Sheet.Title: "Self-test: лист", Entries.Count: 1 }] && await StatsAsync() == stats,
+            archive.Count == 1 ? $"{NotepadFormat.SheetTitle(archive[0], TimeZoneInfo.Local)}: {NotepadFormat.Totals(archive[0].TotalMinutes, archive[0].Entries.Count)}" : $"листов в архиве: {archive.Count}");
+
+        var deleted = sheetId is { } sid && await notepad.DeleteSheetAsync(sid);
+        var archiveAfterDelete = await notepad.GetArchiveAsync();
+        var statsAfterDelete = await StatsAsync();
+        var restored = sheetId is { } rid && await notepad.UndoDeleteSheetAsync(rid);
+        var archiveAfterRestore = await notepad.GetArchiveAsync();
+        r.Check("Блокнот: удаление листа из архива и отмена",
+            deleted && archiveAfterDelete.Count == 0 && restored && archiveAfterRestore is [{ Entries.Count: 1 }] && statsAfterDelete == stats && await StatsAsync() == stats,
+            statsAfterDelete);
+
+        r.Check("Блокнот: записи и статистика не изменились", await repo.GetAsync(id) is { StartMinute: 1140, EndMinute: 1200, Comment: "блокнот" } && await StatsAsync() == stats, await StatsAsync());
     }
 
     private sealed class Reporter(TextWriter log, TextWriter console)
