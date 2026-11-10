@@ -6,6 +6,7 @@
 | [`../CLAUDE.md`](../CLAUDE.md) | агент | краткая память проекта: команды, карта кода, инварианты, правила работы |
 | [`../CHANGELOG.md`](../CHANGELOG.md) | все | история версий (Keep a Changelog) |
 | [`ORIGINAL_PROMPT.md`](ORIGINAL_PROMPT.md) | история | дословное техническое задание, по которому создан проект |
+| [`prompts/`](prompts/) | история | дословные задания на доработки (v1.1.0 — [«Блокнот»](prompts/2026-11-10-notepad.md)) |
 | [`DEVELOPMENT_LOG.md`](DEVELOPMENT_LOG.md) | история | журнал создания по этапам: решения, проблемы, проверки, коммиты |
 | [`PROGRESS.md`](PROGRESS.md) | агент | чек-лист этапов и Definition of Done, точка возобновления работы |
 | [`FEATURES.md`](FEATURES.md) | все | матрица «требование → статус → код → тесты» |
