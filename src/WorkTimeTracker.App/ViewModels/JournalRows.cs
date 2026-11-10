@@ -32,6 +32,9 @@ public sealed class EntryRow(WorkEntry entry) : JournalRow
 
     public long Id => Entry.Id;
 
+    /// <summary>«10 нояб.» — дата в строке блокнота (F8.8).</summary>
+    public string DateText { get; } = RuFormat.DayMonthShort(entry.Date);
+
     public string TimeText { get; } = $"{RuFormat.Clock(entry.StartMinute)} – {RuFormat.Clock(entry.EndMinute)}";
 
     /// <summary>Отметка ночной смены: конец на следующие сутки.</summary>

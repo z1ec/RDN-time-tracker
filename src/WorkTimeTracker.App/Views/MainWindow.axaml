@@ -14,10 +14,12 @@
     <KeyBinding Gesture="Ctrl+D2" Command="{Binding NavigateCommand}" CommandParameter="2" />
     <KeyBinding Gesture="Ctrl+D3" Command="{Binding NavigateCommand}" CommandParameter="3" />
     <KeyBinding Gesture="Ctrl+D4" Command="{Binding NavigateCommand}" CommandParameter="4" />
+    <KeyBinding Gesture="Ctrl+D5" Command="{Binding NavigateCommand}" CommandParameter="5" />
     <KeyBinding Gesture="Ctrl+NumPad1" Command="{Binding NavigateCommand}" CommandParameter="1" />
     <KeyBinding Gesture="Ctrl+NumPad2" Command="{Binding NavigateCommand}" CommandParameter="2" />
     <KeyBinding Gesture="Ctrl+NumPad3" Command="{Binding NavigateCommand}" CommandParameter="3" />
     <KeyBinding Gesture="Ctrl+NumPad4" Command="{Binding NavigateCommand}" CommandParameter="4" />
+    <KeyBinding Gesture="Ctrl+NumPad5" Command="{Binding NavigateCommand}" CommandParameter="5" />
   </Window.KeyBindings>
 
   <SplitView IsPaneOpen="{Binding IsPaneOpen}"
@@ -53,6 +55,7 @@
     <ContentControl Content="{Binding CurrentPage}">
       <ContentControl.DataTemplates>
         <DataTemplate DataType="vm:JournalViewModel"><views:JournalView /></DataTemplate>
+        <DataTemplate DataType="vm:NotepadViewModel"><views:NotepadView /></DataTemplate>
         <DataTemplate DataType="vm:StatisticsViewModel"><views:StatisticsView /></DataTemplate>
         <DataTemplate DataType="vm:SettingsViewModel"><views:SettingsView /></DataTemplate>
         <DataTemplate DataType="vm:AboutViewModel"><views:AboutView /></DataTemplate>

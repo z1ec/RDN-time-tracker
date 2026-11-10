@@ -16,10 +16,10 @@ public sealed class TestHost : IDisposable
 {
     public static readonly DateOnly DefaultToday = new(2026, 11, 10);
 
-    public TestHost(DateTimeOffset? now = null, string? dataDir = null)
+    public TestHost(DateTimeOffset? now = null, string? dataDir = null, bool keepExisting = false)
     {
         Dir = dataDir ?? Path.Combine(Path.GetTempPath(), "wtt-app-tests", Guid.NewGuid().ToString("N"));
-        if (dataDir is not null && Directory.Exists(dataDir))
+        if (dataDir is not null && !keepExisting && Directory.Exists(dataDir))
         {
             Directory.Delete(dataDir, recursive: true);
         }
@@ -31,6 +31,9 @@ public sealed class TestHost : IDisposable
     }
 
     public string Dir { get; }
+
+    /// <summary>Оставить папку данных после <see cref="Dispose"/> — для тестов «перезапуска» на той же БД.</summary>
+    public bool KeepDataOnDispose { get; set; }
 
     public DataPaths Paths { get; }
 
@@ -46,6 +49,10 @@ public sealed class TestHost : IDisposable
 
     public JournalViewModel Journal => Services.GetRequiredService<JournalViewModel>();
 
+    public NotepadViewModel Notepad => Services.GetRequiredService<NotepadViewModel>();
+
+    public NotepadService NotepadService => Services.GetRequiredService<NotepadService>();
+
     public StatisticsViewModel Statistics => Services.GetRequiredService<StatisticsViewModel>();
 
     public SettingsViewModel Settings => Services.GetRequiredService<SettingsViewModel>();
@@ -54,9 +61,9 @@ public sealed class TestHost : IDisposable
 
     public IEntryRepository Repository => Services.GetRequiredService<IEntryRepository>();
 
-    public static async Task<TestHost> StartAsync(DateTimeOffset? now = null, bool demoData = false, string? dataDir = null)
+    public static async Task<TestHost> StartAsync(DateTimeOffset? now = null, bool demoData = false, string? dataDir = null, bool keepExisting = false)
     {
-        var host = new TestHost(now, dataDir);
+        var host = new TestHost(now, dataDir, keepExisting);
         if (demoData)
         {
             // Демо-данные пишутся до запуска UI, поэтому БД готовится заранее.
@@ -72,6 +79,11 @@ public sealed class TestHost : IDisposable
     {
         Services.Dispose();
         Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+        if (KeepDataOnDispose)
+        {
+            return;
+        }
+
         try
         {
             Directory.Delete(Dir, recursive: true);

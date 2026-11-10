@@ -26,7 +26,7 @@ public class HeadlessSmokeTests
 
             window.KeyTextInput("0900 1800 смоук-тест");
             await UiTestHelpers.SettleAsync();
-            Assert.Equal("✓ 10 нояб. · 09:00 → 18:00 · 9 ч 00 мин · «смоук-тест»", host.Journal.PreviewText);
+            Assert.Equal("✓ 10 нояб. · 09:00 → 18:00 · 9 ч 00 мин · «смоук-тест»", host.Journal.Input.PreviewText);
 
             window.KeyPress(Key.Enter, RawInputModifiers.None, PhysicalKey.Enter, null);
             await UiTestHelpers.WaitForAsync(() => host.Journal.Rows.OfType<EntryRow>().Any());
@@ -54,11 +54,11 @@ public class HeadlessSmokeTests
             window.KeyPress(Key.Enter, RawInputModifiers.Shift, PhysicalKey.Enter, null);
             window.KeyTextInput("1100 1200");
             await UiTestHelpers.SettleAsync();
-            Assert.Equal("✓ 2 записи · всего 2 ч 00 мин", host.Journal.PreviewText);
+            Assert.Equal("✓ 2 записи · всего 2 ч 00 мин", host.Journal.Input.PreviewText);
 
             window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
             await UiTestHelpers.SettleAsync();
-            Assert.Equal("", host.Journal.QuickInput);
+            Assert.Equal("", host.Journal.Input.QuickInput);
         }
         finally
         {
@@ -70,14 +70,20 @@ public class HeadlessSmokeTests
     public async Task Hotkeys_Navigate_Delete_Undo_Search()
     {
         using var host = await TestHost.StartAsync();
-        host.Journal.QuickInput = "0900 1000 первая\n1100 1200 вторая";
-        await host.Journal.AddCommand.ExecuteAsync(null);
+        host.Journal.Input.QuickInput = "0900 1000 первая\n1100 1200 вторая";
+        await host.Journal.Input.AddCommand.ExecuteAsync(null);
         var window = await UiTestHelpers.ShowMainWindowAsync(host);
         try
         {
             window.KeyPress(Key.D2, RawInputModifiers.Control, PhysicalKey.Digit2, "2");
             await UiTestHelpers.SettleAsync();
+            Assert.Same(host.Notepad, host.Main.CurrentPage); // F8.1: Ctrl+2 — «Блокнот»
+            window.KeyPress(Key.D3, RawInputModifiers.Control, PhysicalKey.Digit3, "3");
+            await UiTestHelpers.SettleAsync();
             Assert.Same(host.Statistics, host.Main.CurrentPage);
+            window.KeyPress(Key.D5, RawInputModifiers.Control, PhysicalKey.Digit5, "5");
+            await UiTestHelpers.SettleAsync();
+            Assert.IsType<AboutViewModel>(host.Main.CurrentPage);
             window.KeyPress(Key.D1, RawInputModifiers.Control, PhysicalKey.Digit1, "1");
             await UiTestHelpers.SettleAsync();
             Assert.Same(host.Journal, host.Main.CurrentPage);
@@ -90,7 +96,7 @@ public class HeadlessSmokeTests
             await UiTestHelpers.SettleAsync();
             Assert.Single(host.Journal.SelectedRows); // SelectedItems ListBox связан с ViewModel
             window.KeyPress(Key.Delete, RawInputModifiers.None, PhysicalKey.Delete, null);
-            await UiTestHelpers.WaitForAsync(() => host.Journal.IsUndoToastVisible);
+            await UiTestHelpers.WaitForAsync(() => host.Journal.Undo.IsVisible);
             Assert.Single(host.Journal.Rows.OfType<EntryRow>());
 
             window.KeyPress(Key.Z, RawInputModifiers.Control, PhysicalKey.Z, "z");
@@ -114,7 +120,7 @@ public class HeadlessSmokeTests
         var window = await UiTestHelpers.ShowMainWindowAsync(host);
         try
         {
-            foreach (var page in new[] { "2", "3", "4", "1" })
+            foreach (var page in new[] { "2", "3", "4", "5", "1" })
             {
                 host.Main.NavigateCommand.Execute(page);
                 await UiTestHelpers.SettleAsync();
@@ -133,8 +139,8 @@ public class HeadlessSmokeTests
     public async Task Dialogs_Render()
     {
         using var host = await TestHost.StartAsync();
-        host.Journal.QuickInput = "0900 1000";
-        await host.Journal.AddCommand.ExecuteAsync(null);
+        host.Journal.Input.QuickInput = "0900 1000";
+        await host.Journal.Input.AddCommand.ExecuteAsync(null);
         var owner = await UiTestHelpers.ShowMainWindowAsync(host);
         try
         {

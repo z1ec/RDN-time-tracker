@@ -13,10 +13,10 @@ public class StatisticsViewModelTests
     private static async Task<TestHost> WithDataAsync()
     {
         var host = await TestHost.StartAsync();
-        host.Journal.QuickInput = string.Join('\n',
+        host.Journal.Input.QuickInput = string.Join('\n',
             "02.11 0900 1300 планёрка", "02.11 1400 1800", "03.11 1000 1900", "06.11 2200 0200 релиз",
             "09.11 0900 1800", "0900 1200 сегодня", "27.10 0900 1700");
-        await host.Journal.AddCommand.ExecuteAsync(null);
+        await host.Journal.Input.AddCommand.ExecuteAsync(null);
         await host.Statistics.LoadAsync();
         return host;
     }
@@ -177,8 +177,8 @@ public class StatisticsViewModelTests
     public async Task NewEntries_RefreshStatistics()
     {
         using var host = await TestHost.StartAsync();
-        host.Journal.QuickInput = "0900 1000";
-        await host.Journal.AddCommand.ExecuteAsync(null);
+        host.Journal.Input.QuickInput = "0900 1000";
+        await host.Journal.Input.AddCommand.ExecuteAsync(null);
         await WaitAsync(() => host.Statistics.Kpis[0].Value == "1:00");
     }
 

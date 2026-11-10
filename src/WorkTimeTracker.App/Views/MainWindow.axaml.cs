@@ -30,15 +30,16 @@ public partial class MainWindow : Window
             Avalonia.Threading.Dispatcher.UIThread.Post(() => this.GetVisualDescendants().OfType<JournalView>().FirstOrDefault()?.FocusSearch());
             e.Handled = true;
         }
-        else if (e.Key == Key.Z && vm.Journal.UndoCommand.CanExecute(null))
+        else if (e.Key == Key.Z && vm.ActiveUndo is { } undo && undo.UndoCommand.CanExecute(null))
         {
+            // Отменяется последнее действие активной вкладки (F8.20).
             // В непустом текстовом поле Ctrl+Z остаётся отменой ввода.
             if (FocusManager?.GetFocusedElement() is TextBox { Text.Length: > 0 })
             {
                 return;
             }
 
-            vm.Journal.UndoCommand.Execute(null);
+            undo.UndoCommand.Execute(null);
             e.Handled = true;
         }
     }

@@ -37,6 +37,7 @@ public static class AppComposition
         services.AddSingleton(interaction);
         services.AddSingleton<ThemeService>();
         services.AddSingleton<JournalViewModel>();
+        services.AddSingleton<NotepadViewModel>();
         services.AddSingleton<StatisticsViewModel>();
         services.AddSingleton<SettingsViewModel>();
         services.AddSingleton<AboutViewModel>();

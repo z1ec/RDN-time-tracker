@@ -1,0 +1,203 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:WorkTimeTracker.App.ViewModels"
+             xmlns:views="using:WorkTimeTracker.App.Views"
+             x:Class="WorkTimeTracker.App.Views.NotepadView"
+             x:DataType="vm:NotepadViewModel">
+  <Grid RowDefinitions="Auto,*" Margin="24,20,24,16">
+    <!-- Заголовок и переключатель «Текущий | Архив (N)» (F8.15) -->
+    <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,16">
+      <StackPanel Spacing="2">
+        <TextBlock Classes="h1" Text="Блокнот" />
+        <TextBlock Classes="subtle" Text="Рабочий лист: записи попадают в журнал и статистику, а здесь видна их сумма" />
+      </StackPanel>
+      <ListBox Grid.Column="1" Classes="segmented" VerticalAlignment="Center"
+               SelectedIndex="{Binding SelectedTabIndex}"
+               AutomationProperties.Name="Текущий лист или архив">
+        <ListBox.ItemsPanel>
+          <ItemsPanelTemplate>
+            <StackPanel Orientation="Horizontal" />
+          </ItemsPanelTemplate>
+        </ListBox.ItemsPanel>
+        <ListBoxItem AutomationProperties.Name="Текущий">Текущий</ListBoxItem>
+        <ListBoxItem AutomationProperties.Name="Архив">
+          <TextBlock Text="{Binding ArchiveTabText}" />
+        </ListBoxItem>
+      </ListBox>
+    </Grid>
+
+    <!-- ===== Текущий лист ===== -->
+    <Grid Grid.Row="1" RowDefinitions="Auto,Auto,*" IsVisible="{Binding IsCurrentVisible}">
+      <!-- Плашка: название (F8.7), сумма (F8.6), «Очистить всё» (F8.14) -->
+      <Border Grid.Row="0" Classes="card" Margin="0,0,0,16">
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+          <StackPanel Spacing="8">
+            <TextBox x:Name="TitleBox" Classes="sheetTitle" HorizontalAlignment="Left" Width="420"
+                     Text="{Binding Title, UpdateSourceTrigger=LostFocus}"
+                     MaxLength="{Binding MaxTitleLength}"
+                     PlaceholderText="Без названия"
+                     ToolTip.Tip="Название листа, например «Заказ: сайт кафе» (необязательно)"
+                     AutomationProperties.Name="Название листа">
+              <TextBox.InnerRightContent>
+                <PathIcon Data="{StaticResource IconEdit}" Margin="0,0,10,0" Opacity="0.5" Width="14" Height="14" />
+              </TextBox.InnerRightContent>
+            </TextBox>
+            <SelectableTextBlock Text="{Binding SummaryText}" FontSize="15" FontWeight="SemiBold"
+                                 Foreground="{DynamicResource AccentTextBrush}"
+                                 TextWrapping="Wrap" AutomationProperties.Name="Сумма блокнота" />
+          </StackPanel>
+          <Button Grid.Column="1" VerticalAlignment="Bottom" Padding="16,8"
+                  Command="{Binding ClearAllCommand}"
+                  ToolTip.Tip="Перенести лист в архив. Записи останутся в журнале и статистике"
+                  ToolTip.ShowOnDisabled="True"
+                  AutomationProperties.Name="Очистить всё">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <PathIcon Data="{StaticResource IconHistory}" />
+              <TextBlock Text="Очистить всё" />
+            </StackPanel>
+          </Button>
+        </Grid>
+      </Border>
+
+      <!-- Ввод: тот же контрол, что в «Журнале» (F8.2) -->
+      <Border Grid.Row="1" Classes="card" Margin="0,0,0,16">
+        <views:EntryInputView x:Name="EntryInput" DataContext="{Binding Input}" />
+      </Border>
+
+      <!-- Записи листа (F8.8), правка (F8.10), убрать из блокнота (F8.11) -->
+      <Border Grid.Row="2" Classes="card" Padding="8">
+        <Grid RowDefinitions="*,Auto">
+          <ListBox x:Name="EntriesList" Classes="journal" Background="Transparent"
+                   ItemsSource="{Binding Rows}" SelectedItems="{Binding SelectedRows}"
+                   SelectionMode="Multiple"
+                   AutomationProperties.Name="Записи блокнота">
+            <ListBox.KeyBindings>
+              <KeyBinding Gesture="Delete" Command="{Binding RemoveSelectedCommand}" />
+            </ListBox.KeyBindings>
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="vm:EntryRow">
+                <Grid ColumnDefinitions="90,140,32,110,*,Auto,Auto" Background="Transparent"
+                      DoubleTapped="OnEntryDoubleTapped"
+                      AutomationProperties.Name="{Binding AccessibleName}">
+                  <Grid.ContextMenu>
+                    <ContextMenu>
+                      <MenuItem Header="Изменить" Command="{Binding $parent[ListBox].((vm:NotepadViewModel)DataContext).EditEntryCommand}" CommandParameter="{Binding}" />
+                      <MenuItem Header="Убрать выбранные из блокнота (Del)" Command="{Binding $parent[ListBox].((vm:NotepadViewModel)DataContext).RemoveSelectedCommand}" />
+                      <MenuItem Header="Убрать из блокнота" Command="{Binding $parent[ListBox].((vm:NotepadViewModel)DataContext).RemoveEntryCommand}" CommandParameter="{Binding}" />
+                    </ContextMenu>
+                  </Grid.ContextMenu>
+                  <TextBlock Text="{Binding DateText}" Classes="subtle" VerticalAlignment="Center" />
+                  <TextBlock Grid.Column="1" Text="{Binding TimeText}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                  <Border Grid.Column="2" IsVisible="{Binding EndsNextDay}" Background="{DynamicResource AccentSoftBrush}"
+                          CornerRadius="6" Padding="5,1" VerticalAlignment="Center" HorizontalAlignment="Left"
+                          ToolTip.Tip="Ночная смена: конец на следующий день">
+                    <TextBlock Text="+1" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextBrush}" />
+                  </Border>
+                  <TextBlock Grid.Column="3" Text="{Binding DurationText}" Classes="subtle" VerticalAlignment="Center" />
+                  <TextBlock Grid.Column="4" Text="{Binding Comment}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
+                             ToolTip.Tip="{Binding Comment}" ToolTip.IsEnabled="{Binding HasComment}" />
+                  <Button Grid.Column="5" Classes="icon" ToolTip.Tip="Изменить запись (двойной клик)"
+                          Command="{Binding $parent[ListBox].((vm:NotepadViewModel)DataContext).EditEntryCommand}" CommandParameter="{Binding}"
+                          AutomationProperties.Name="Изменить запись">
+                    <PathIcon Data="{StaticResource IconEdit}" />
+                  </Button>
+                  <Button Grid.Column="6" Classes="icon"
+                          ToolTip.Tip="Убрать из блокнота (запись останется в журнале и статистике)"
+                          Command="{Binding $parent[ListBox].((vm:NotepadViewModel)DataContext).RemoveEntryCommand}" CommandParameter="{Binding}"
+                          AutomationProperties.Name="Убрать из блокнота">
+                    <PathIcon Data="{StaticResource IconDismiss}" />
+                  </Button>
+                </Grid>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+
+          <!-- Пустое состояние (F8.19) -->
+          <StackPanel IsVisible="{Binding IsEmpty}" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12" Margin="16">
+            <PathIcon Data="{StaticResource IconNotepad}" Width="40" Height="40" Opacity="0.35" HorizontalAlignment="Center" />
+            <TextBlock Classes="subtle" FontSize="15" Text="{x:Static vm:NotepadViewModel.EmptyCurrentText}"
+                       TextAlignment="Center" TextWrapping="Wrap" MaxWidth="460" AutomationProperties.Name="Блокнот пуст" />
+          </StackPanel>
+
+          <TextBlock Grid.Row="1" Classes="subtle small" Text="{Binding StatusText}" Margin="8,8,8,4" />
+        </Grid>
+      </Border>
+    </Grid>
+
+    <!-- ===== Архив (F8.15–F8.17) ===== -->
+    <Grid Grid.Row="1" RowDefinitions="*,Auto" IsVisible="{Binding IsArchiveVisible}">
+      <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <ItemsControl ItemsSource="{Binding ArchiveSheets}" AutomationProperties.Name="Архив блокнота">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:ArchiveSheetViewModel">
+              <Border Classes="card" Padding="8" Margin="0,0,0,12" AutomationProperties.Name="{Binding AccessibleName}">
+                <StackPanel>
+                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                    <Button Classes="sheetHeader" Command="{Binding ToggleExpandedCommand}"
+                            ToolTip.Tip="Показать или скрыть записи листа"
+                            AutomationProperties.Name="{Binding Title}">
+                      <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                        <Panel VerticalAlignment="Center" Width="16" Height="16">
+                          <PathIcon Data="{StaticResource IconChevronRight}" Width="12" Height="12" IsVisible="{Binding !IsExpanded}" />
+                          <PathIcon Data="{StaticResource IconChevronDown}" Width="12" Height="12" IsVisible="{Binding IsExpanded}" />
+                        </Panel>
+                        <StackPanel Grid.Column="1" Spacing="4">
+                          <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Classes="h2" Text="{Binding Title}" TextTrimming="CharacterEllipsis" MaxWidth="560" />
+                            <Border IsVisible="{Binding AllEntriesDeleted}" Background="{DynamicResource AccentSoftBrush}"
+                                    CornerRadius="6" Padding="6,1" VerticalAlignment="Center">
+                              <TextBlock Text="записи удалены" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource NegativeBrush}" />
+                            </Border>
+                          </StackPanel>
+                          <TextBlock Classes="subtle" Text="{Binding SubtitleText}" TextWrapping="Wrap" />
+                        </StackPanel>
+                      </Grid>
+                    </Button>
+                    <Button Grid.Column="1" Classes="icon" VerticalAlignment="Center" Margin="0,0,4,0"
+                            ToolTip.Tip="Удалить из архива (записи останутся в журнале и статистике)"
+                            Command="{Binding $parent[ItemsControl].((vm:NotepadViewModel)DataContext).DeleteSheetCommand}" CommandParameter="{Binding}"
+                            AutomationProperties.Name="Удалить из архива">
+                      <PathIcon Data="{StaticResource IconDelete}" />
+                    </Button>
+                  </Grid>
+                  <!-- Записи листа: только чтение, текущее состояние (F8.16) -->
+                  <ItemsControl ItemsSource="{Binding Entries}" IsVisible="{Binding IsExpanded}" Margin="40,4,12,8">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="vm:EntryRow">
+                        <Grid ColumnDefinitions="90,140,32,110,*" Margin="0,5" AutomationProperties.Name="{Binding AccessibleName}">
+                          <TextBlock Text="{Binding DateText}" Classes="subtle" />
+                          <TextBlock Grid.Column="1" Text="{Binding TimeText}" FontWeight="SemiBold" />
+                          <Border Grid.Column="2" IsVisible="{Binding EndsNextDay}" Background="{DynamicResource AccentSoftBrush}"
+                                  CornerRadius="6" Padding="5,1" VerticalAlignment="Center" HorizontalAlignment="Left">
+                            <TextBlock Text="+1" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextBrush}" />
+                          </Border>
+                          <TextBlock Grid.Column="3" Text="{Binding DurationText}" Classes="subtle" />
+                          <TextBlock Grid.Column="4" Text="{Binding Comment}" TextTrimming="CharacterEllipsis"
+                                     ToolTip.Tip="{Binding Comment}" ToolTip.IsEnabled="{Binding HasComment}" />
+                        </Grid>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                  <TextBlock Classes="subtle" Margin="40,4,12,8" Text="Все записи этого листа удалены в журнале"
+                             IsVisible="{Binding ShowDeletedNote}" />
+                </StackPanel>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </ScrollViewer>
+
+      <!-- Пустое состояние архива (F8.19) -->
+      <StackPanel IsVisible="{Binding IsArchiveEmpty}" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12">
+        <PathIcon Data="{StaticResource IconHistory}" Width="40" Height="40" Opacity="0.35" HorizontalAlignment="Center" />
+        <TextBlock Classes="subtle" FontSize="15" Text="{x:Static vm:NotepadViewModel.EmptyArchiveText}"
+                   TextAlignment="Center" AutomationProperties.Name="Архив пуст" />
+      </StackPanel>
+
+      <TextBlock Grid.Row="1" Classes="subtle small" Text="{Binding StatusText}" Margin="8,8,8,4" />
+    </Grid>
+
+    <!-- Уведомление с отменой: ✕, «Очистить всё», «Удалить из архива» (F8.11, F8.14, F8.17) -->
+    <views:UndoToastView Grid.Row="1" DataContext="{Binding Undo}" />
+  </Grid>
+</UserControl>

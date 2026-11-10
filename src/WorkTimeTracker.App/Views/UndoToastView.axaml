@@ -1,0 +1,23 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:WorkTimeTracker.App.ViewModels"
+             x:Class="WorkTimeTracker.App.Views.UndoToastView"
+             x:DataType="vm:UndoToastViewModel"
+             IsVisible="{Binding IsVisible}"
+             HorizontalAlignment="Center" VerticalAlignment="Bottom">
+  <!-- Уведомление с отменой (F5.3, F8.11, F8.14, F8.17): общее для «Журнала» и «Блокнота». -->
+  <Border Background="{DynamicResource ToastBackgroundBrush}" CornerRadius="10" Padding="16,8,8,8"
+          BoxShadow="0 4 16 0 #40000000" Margin="16,4,16,16">
+    <StackPanel Orientation="Horizontal" Spacing="16">
+      <TextBlock Text="{Binding Text}" Foreground="{DynamicResource ToastForegroundBrush}" VerticalAlignment="Center"
+                 AutomationProperties.Name="Уведомление" />
+      <Button Command="{Binding UndoCommand}" Background="Transparent" Padding="8,4"
+              AutomationProperties.Name="Отменить" ToolTip.Tip="Ctrl+Z">
+        <StackPanel Orientation="Horizontal" Spacing="6">
+          <PathIcon Data="{StaticResource IconArrowUndo}" Foreground="{DynamicResource ToastAccentBrush}" />
+          <TextBlock Text="Отменить" FontWeight="SemiBold" Foreground="{DynamicResource ToastAccentBrush}" />
+        </StackPanel>
+      </Button>
+    </StackPanel>
+  </Border>
+</UserControl>

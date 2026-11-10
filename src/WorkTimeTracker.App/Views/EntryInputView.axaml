@@ -1,0 +1,84 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:WorkTimeTracker.App.ViewModels"
+             x:Class="WorkTimeTracker.App.Views.EntryInputView"
+             x:DataType="vm:EntryInputViewModel">
+  <!-- Быстрый ввод (F1) и форма (F2). Один контрол для «Журнала» и «Блокнота» (F8.2). -->
+  <StackPanel Spacing="8">
+    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+      <CalendarDatePicker Grid.Column="0" Width="150"
+                          SelectedDate="{Binding SelectedDate}"
+                          DisplayDateEnd="{Binding MaxDate}"
+                          IsTodayHighlighted="True"
+                          SelectedDateFormat="Custom" CustomDateFormatString="ddd, d MMM"
+                          ToolTip.Tip="Дата для записей без даты в строке"
+                          AutomationProperties.Name="Дата записи" />
+      <TextBox Grid.Column="1" x:Name="QuickInputBox"
+               Text="{Binding QuickInput}"
+               AcceptsReturn="True" TextWrapping="NoWrap" MaxHeight="140"
+               FontSize="15" VerticalContentAlignment="Center"
+               PlaceholderText="0900 1800 созвон с клиентом — Enter добавляет, можно вставить несколько строк"
+               AutomationProperties.Name="Быстрый ввод" />
+      <Button Grid.Column="2" Classes="accent" Command="{Binding AddCommand}" Padding="16,8"
+              AutomationProperties.Name="Добавить" VerticalAlignment="Top">
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <PathIcon Data="{StaticResource IconAdd}" />
+          <TextBlock Text="Добавить" />
+        </StackPanel>
+      </Button>
+    </Grid>
+
+    <SelectableTextBlock Text="{Binding PreviewText}" IsVisible="{Binding HasPreview}"
+                         Classes.error="{Binding PreviewIsError}"
+                         Classes.success="{Binding !PreviewIsError}"
+                         TextWrapping="Wrap" Margin="158,0,0,0"
+                         AutomationProperties.Name="Предпросмотр" />
+
+    <Expander Header="Ввести через форму" IsExpanded="{Binding IsFormExpanded}"
+              HorizontalAlignment="Stretch" AutomationProperties.Name="Ввести через форму">
+      <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,*,Auto" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="8">
+        <StackPanel Grid.Column="0" Spacing="4">
+          <TextBlock Classes="subtle small" Text="Дата" />
+          <CalendarDatePicker Width="150" SelectedDate="{Binding SelectedDate}" DisplayDateEnd="{Binding MaxDate}"
+                              SelectedDateFormat="Custom" CustomDateFormatString="dd.MM.yyyy"
+                              AutomationProperties.Name="Дата в форме" />
+        </StackPanel>
+        <StackPanel Grid.Column="1" Spacing="4">
+          <TextBlock Classes="subtle small" Text="Начало" />
+          <StackPanel Orientation="Horizontal" Spacing="4">
+            <TimePicker ClockIdentifier="24HourClock" MinuteIncrement="1" SelectedTime="{Binding FormStart}"
+                        AutomationProperties.Name="Начало" />
+            <Button Classes="icon" Command="{Binding SetFormStartNowCommand}" ToolTip.Tip="Сейчас"
+                    AutomationProperties.Name="Начало — сейчас">
+              <PathIcon Data="{StaticResource IconClock}" />
+            </Button>
+          </StackPanel>
+        </StackPanel>
+        <StackPanel Grid.Column="2" Spacing="4">
+          <TextBlock Classes="subtle small" Text="Конец" />
+          <StackPanel Orientation="Horizontal" Spacing="4">
+            <TimePicker ClockIdentifier="24HourClock" MinuteIncrement="1" SelectedTime="{Binding FormEnd}"
+                        AutomationProperties.Name="Конец" />
+            <Button Classes="icon" Command="{Binding SetFormEndNowCommand}" ToolTip.Tip="Сейчас"
+                    AutomationProperties.Name="Конец — сейчас">
+              <PathIcon Data="{StaticResource IconClock}" />
+            </Button>
+          </StackPanel>
+        </StackPanel>
+        <StackPanel Grid.Column="3" Spacing="4" VerticalAlignment="Bottom" MinWidth="120">
+          <TextBlock Classes="subtle small" Text="Длительность" />
+          <TextBlock Text="{Binding FormDurationText}" FontWeight="SemiBold" Margin="0,6" AutomationProperties.Name="Длительность в форме" />
+        </StackPanel>
+        <Grid Grid.Row="1" Grid.ColumnSpan="5" RowDefinitions="Auto,Auto">
+          <TextBox Text="{Binding FormComment}" MaxLength="500" PlaceholderText="Комментарий (необязательно)"
+                   AutomationProperties.Name="Комментарий в форме" />
+          <TextBlock Grid.Row="1" Classes="subtle small" HorizontalAlignment="Right" Margin="0,2,0,0" Text="{Binding FormCommentCounter}" />
+        </Grid>
+        <Button Grid.Row="1" Grid.Column="5" Classes="accent" VerticalAlignment="Top" Command="{Binding AddFromFormCommand}"
+                Content="Добавить" Padding="16,8" AutomationProperties.Name="Добавить из формы" />
+        <TextBlock Grid.Row="2" Grid.ColumnSpan="6" Classes="error" Text="{Binding FormError}" TextWrapping="Wrap"
+                   IsVisible="{Binding FormError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+      </Grid>
+    </Expander>
+  </StackPanel>
+</UserControl>

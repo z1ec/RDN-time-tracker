@@ -19,6 +19,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
     public MainWindowViewModel(
         JournalViewModel journal,
+        NotepadViewModel notepad,
         StatisticsViewModel statistics,
         SettingsViewModel settingsPage,
         AboutViewModel about,
@@ -29,6 +30,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         DataPaths paths)
     {
         Journal = journal;
+        Notepad = notepad;
         Statistics = statistics;
         SettingsPage = settingsPage;
         About = about;
@@ -40,15 +42,18 @@ public sealed partial class MainWindowViewModel : ObservableObject
         Navigation =
         [
             new("Журнал", "IconBook", "Ctrl+1", journal),
-            new("Статистика", "IconDataBarVertical", "Ctrl+2", statistics),
-            new("Настройки", "IconSettings", "Ctrl+3", settingsPage),
-            new("О программе", "IconInfo", "Ctrl+4", about),
+            new("Блокнот", "IconNotepad", "Ctrl+2", notepad),
+            new("Статистика", "IconDataBarVertical", "Ctrl+3", statistics),
+            new("Настройки", "IconSettings", "Ctrl+4", settingsPage),
+            new("О программе", "IconInfo", "Ctrl+5", about),
         ];
         SelectedNavigation = Navigation[0];
         CurrentPage = journal;
     }
 
     public JournalViewModel Journal { get; }
+
+    public NotepadViewModel Notepad { get; }
 
     public StatisticsViewModel Statistics { get; }
 
@@ -78,7 +83,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         }
     }
 
-    /// <summary>Переход по горячим клавишам Ctrl+1…4 (F7.6): параметр — номер раздела с 1.</summary>
+    /// <summary>Переход по горячим клавишам Ctrl+1…5 (F7.6, F8.1): параметр — номер раздела с 1.</summary>
     [RelayCommand]
     private void Navigate(string? number)
     {
@@ -87,6 +92,17 @@ public sealed partial class MainWindowViewModel : ObservableObject
             SelectedNavigation = Navigation[n - 1];
         }
     }
+
+    /// <summary>
+    /// Отмена для Ctrl+Z (F8.20): последнее действие активной вкладки. У «Журнала» и «Блокнота» отмена своя,
+    /// на остальных вкладках отменять нечего.
+    /// </summary>
+    public UndoToastViewModel? ActiveUndo => CurrentPage switch
+    {
+        JournalViewModel journal => journal.Undo,
+        NotepadViewModel notepad => notepad.Undo,
+        _ => null,
+    };
 
     [RelayCommand]
     private void TogglePane() => IsPaneOpen = !IsPaneOpen;
@@ -101,8 +117,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
         {
             var startup = await _initializer.InitializeAsync();
             Serilog.Log.Information(
-                "БД готова: {Path}, схема {From}→{To}, бэкап {Backup}, очищено {Purged}",
-                _paths.DatabasePath, startup.Migration.FromVersion, startup.Migration.ToVersion, startup.AutoBackupPath ?? "—", startup.PurgedEntries);
+                "БД готова: {Path}, схема {From}→{To}, бэкап {Backup}, очищено записей {Purged}, привязок блокнота {Items}, листов {Sheets}",
+                _paths.DatabasePath, startup.Migration.FromVersion, startup.Migration.ToVersion, startup.AutoBackupPath ?? "—", startup.PurgedEntries, startup.PurgedNotepad.Items, startup.PurgedNotepad.Sheets);
         }
         catch (DatabaseOpenException ex)
         {
@@ -116,7 +132,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
         await _settings.LoadAsync();
         _theme.Apply(_settings.Current.Theme);
-        await Task.WhenAll(Journal.LoadAsync(), Statistics.LoadAsync());
+        await Task.WhenAll(Journal.LoadAsync(), Notepad.LoadAsync(), Statistics.LoadAsync());
         IsReady = true;
         return true;
     }

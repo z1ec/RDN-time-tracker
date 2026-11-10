@@ -67,7 +67,7 @@ public class ScreenshotTests
         var (host, window) = await OpenAsync(ThemeVariant.Light);
         using (host)
         {
-            host.Journal.QuickInput = "1630 1800 ревью pull request";
+            host.Journal.Input.QuickInput = "1630 1800 ревью pull request";
             await SaveAsync(window, "journal-light.png");
         }
     }
@@ -78,10 +78,10 @@ public class ScreenshotTests
         var (host, window) = await OpenAsync(ThemeVariant.Dark);
         using (host)
         {
-            host.Journal.IsFormExpanded = true;
-            host.Journal.FormStart = new TimeSpan(22, 0, 0);
-            host.Journal.FormEnd = new TimeSpan(1, 30, 0);
-            host.Journal.FormComment = "ночная выкатка";
+            host.Journal.Input.IsFormExpanded = true;
+            host.Journal.Input.FormStart = new TimeSpan(22, 0, 0);
+            host.Journal.Input.FormEnd = new TimeSpan(1, 30, 0);
+            host.Journal.Input.FormComment = "ночная выкатка";
             await SaveAsync(window, "journal-dark.png");
         }
     }
@@ -92,7 +92,7 @@ public class ScreenshotTests
         var (host, window) = await OpenAsync(ThemeVariant.Light);
         using (host)
         {
-            host.Journal.QuickInput = "0900 2500 созвон";
+            host.Journal.Input.QuickInput = "0900 2500 созвон";
             await SaveAsync(window, "quick-input-error.png");
         }
     }
@@ -103,7 +103,7 @@ public class ScreenshotTests
         var (host, window) = await OpenAsync(ThemeVariant.Light);
         using (host)
         {
-            host.Main.NavigateCommand.Execute("2");
+            host.Main.NavigateCommand.Execute("3");
             host.Statistics.SelectedKindIndex = 2;
             await UiTestHelpers.WaitForAsync(() => host.Statistics.Period.Kind == Core.Model.PeriodKind.Month && host.Statistics.HasChart);
             await SaveAsync(window, "statistics-month-light.png");
@@ -116,7 +116,7 @@ public class ScreenshotTests
         var (host, window) = await OpenAsync(ThemeVariant.Dark);
         using (host)
         {
-            host.Main.NavigateCommand.Execute("2");
+            host.Main.NavigateCommand.Execute("3");
             await UiTestHelpers.WaitForAsync(() => host.Statistics.HasChart);
             await SaveAsync(window, "statistics-week-dark.png");
         }
@@ -128,7 +128,7 @@ public class ScreenshotTests
         var (host, window) = await OpenAsync(ThemeVariant.Light, height: 1240);
         using (host)
         {
-            host.Main.NavigateCommand.Execute("2");
+            host.Main.NavigateCommand.Execute("3");
             host.Statistics.SelectedKindIndex = 3;
             await UiTestHelpers.WaitForAsync(() => host.Statistics.HasHeatmap);
             await SaveAsync(window, "statistics-year-light.png");
@@ -141,7 +141,7 @@ public class ScreenshotTests
         var (host, window) = await OpenAsync(ThemeVariant.Light);
         using (host)
         {
-            host.Main.NavigateCommand.Execute("3");
+            host.Main.NavigateCommand.Execute("4");
             await SaveAsync(window, "settings-light.png");
         }
     }
@@ -152,7 +152,7 @@ public class ScreenshotTests
         var (host, window) = await OpenAsync(ThemeVariant.Dark);
         using (host)
         {
-            host.Main.NavigateCommand.Execute("4");
+            host.Main.NavigateCommand.Execute("5");
             await SaveAsync(window, "about-dark.png");
         }
     }

@@ -73,8 +73,8 @@ public class SettingsAndAboutTests
         Assert.Equal("Резервная копия сохранена: worktime-2026-11-10.db", vm.StatusText);
         Assert.Equal("Копий: 1 из 14, последняя — worktime-2026-11-10.db", vm.BackupsInfo);
 
-        host.Journal.QuickInput = "0900 1000\n1100 1200";
-        await host.Journal.AddCommand.ExecuteAsync(null);
+        host.Journal.Input.QuickInput = "0900 1000\n1100 1200";
+        await host.Journal.Input.AddCommand.ExecuteAsync(null);
         host.Interaction.SavePath = Path.Combine(host.Dir, "all.csv");
         await vm.ExportAllCommand.ExecuteAsync(null);
         Assert.Equal("Экспортировано: 2 записи в all.csv", vm.StatusText);
@@ -91,7 +91,7 @@ public class SettingsAndAboutTests
     public async Task About_ShowsVersionAndLinks()
     {
         using var host = await TestHost.StartAsync();
-        var vm = (AboutViewModel)host.Main.Navigation[3].Page;
+        var vm = (AboutViewModel)host.Main.Navigation[4].Page;
         Assert.Equal("WorkTime Tracker", vm.Title);
         Assert.StartsWith("Версия ", vm.Version, StringComparison.Ordinal);
         Assert.Equal("https://github.com/z1ec/RDN-time-tracker", vm.RepositoryUrl);
@@ -113,13 +113,18 @@ public class SettingsAndAboutTests
         Assert.True(vm.IsReady);
         Assert.Same(host.Journal, vm.CurrentPage);
         vm.NavigateCommand.Execute("2");
-        Assert.Same(host.Statistics, vm.CurrentPage);
+        Assert.Same(host.Notepad, vm.CurrentPage);
         vm.NavigateCommand.Execute("3");
+        Assert.Same(host.Statistics, vm.CurrentPage);
+        vm.NavigateCommand.Execute("5");
+        Assert.IsType<ViewModels.AboutViewModel>(vm.CurrentPage);
+        vm.NavigateCommand.Execute("4");
         Assert.Same(host.Settings, vm.CurrentPage);
         vm.NavigateCommand.Execute("9");
         vm.NavigateCommand.Execute("x");
         Assert.Same(host.Settings, vm.CurrentPage);
-        Assert.Equal(["Журнал", "Статистика", "Настройки", "О программе"], vm.Navigation.Select(n => n.Title));
+        Assert.Equal(["Журнал", "Блокнот", "Статистика", "Настройки", "О программе"], vm.Navigation.Select(n => n.Title));
+        Assert.Equal(["Ctrl+1", "Ctrl+2", "Ctrl+3", "Ctrl+4", "Ctrl+5"], vm.Navigation.Select(n => n.Hotkey));
         vm.TogglePaneCommand.Execute(null);
         Assert.True(vm.IsPaneOpen);
     }
