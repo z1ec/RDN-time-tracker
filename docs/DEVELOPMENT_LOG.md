@@ -279,5 +279,6 @@
 | #4 | `Microsoft.NET.Test.Sdk` 18.11.0 → 18.11.1 | смержен (squash), CI ✅ |
 | #2 | Avalonia 12.1.5 → 12.1.6 (6 пакетов) | принят: CI падал на `NU1004` — Dependabot обновил `App.Tests/packages.lock.json` не полностью. Версии из PR перенесены поверх `main`, lock-файлы перегенерированы `dotnet restore --force-evaluate`, коммит запушен в `main`. `Avalonia.Headless.XUnit 12.1.6` по-прежнему требует `xunit.v3.extensibility.core 3.2.2` |
 | #3 | `Microsoft.Extensions.DependencyInjection`, `Microsoft.Data.Sqlite`, `Microsoft.Extensions.TimeProvider.Testing` 10.x → 11.0.0 | отклонён: проект на `net10.0` (LTS), а `Microsoft.Data.Sqlite` 11 переводит нативный слой на SQLitePCLRaw 3.0.5 + пакет `SQLite` 3.53.4 — менять доступ к БД пользователя без выигрыша для приложения незачем. В `dependabot.yml` — ignore мажорных обновлений `Microsoft.Extensions.*` и `Microsoft.Data.Sqlite` |
+| #5 | `Microsoft.Extensions.DependencyInjection`, `Microsoft.Data.Sqlite` 10.0.14 → 10.0.15 (открыт после нового правила) | принят тем же способом, что #2: в PR не были обновлены lock-файлы тестов (`NU1004`). SQLitePCLRaw остаётся 2.1.13 |
 
-**Проверка Avalonia 12.1.6:** `scripts/build.sh` — 0 предупреждений; `scripts/test.sh` — Core 272, Data 69, App 82 = 423 теста, 0 упавших; `dotnet format --verify-no-changes` — чисто.
+**Проверка Avalonia 12.1.6 и 10.0.15 (каждое обновление отдельно):** `scripts/build.sh` — 0 предупреждений; `scripts/test.sh` — Core 272, Data 69, App 82 = 423 теста, 0 упавших; `dotnet format --verify-no-changes` — чисто.
