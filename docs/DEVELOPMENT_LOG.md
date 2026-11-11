@@ -255,3 +255,12 @@
 | 3 | ТЗ (дословность) | подсказка удаления в «Журнале» имела хвост « — Del» | текст приведён к заданию: «Удалить запись (в том числе из блокнота)»; тест `JournalDeleteTooltip_MentionsNotepad` |
 
 **Проверка после исправлений:** Core 272, Data 69, App 82 = **423 теста**, 0 упавших; покрытие Core 99,3%; сборка без предупреждений; `dotnet format` чистый.
+
+### Релиз v1.1.0 (этап 8) · 2026-11-11
+
+- `CHANGELOG.md` — секция `[1.1.0] - 2026-11-11` (Added / Changed), `<Version>` 1.1.0; коммит `chore(release): v1.1.0`, CI ✅ https://github.com/z1ec/RDN-time-tracker/actions/runs/42985140514 (тесты на Linux и Windows, self-test настоящего exe — 20 проверок, включая блокнот).
+- `git tag v1.1.0 && git push origin v1.1.0` → Release ✅ https://github.com/z1ec/RDN-time-tracker/actions/runs/42985676283 — с первого запуска.
+- Релиз https://github.com/z1ec/RDN-time-tracker/releases/tag/v1.1.0: `WorkTimeTracker-v1.1.0-win-x64.exe` (51 388 080 байт), `WorkTimeTracker-v1.1.0-win-x64.zip` (45 628 224 байт), `SHA256SUMS.txt`; заметки — секция `[1.1.0]` из CHANGELOG. Скачанные файлы сверены: `shasum -a 256 -c SHA256SUMS.txt` — оба `OK`.
+- Корневого `PROMPT-notepad.md` в репозитории не было (см. выше), удалять нечего; копия задания — `docs/prompts/2026-11-10-notepad.md`.
+
+**Итог v1.1.0:** F8.1–F8.20 ✅, S1–S12 покрыты; 423 теста (+81 к v1.0.0) и 12 тестов-скриншотов; покрытие Core 99,3%. Не проверялось вручную на настоящей Windows с окном — только автотесты, headless UI и self-test exe в CI; чек-лист ручной проверки — `docs/DEVELOPMENT.md`, «Блокнот: ручная проверка на Windows (3 минуты)».
