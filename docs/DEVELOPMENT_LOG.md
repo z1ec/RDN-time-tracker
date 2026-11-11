@@ -264,3 +264,8 @@
 - Корневого `PROMPT-notepad.md` в репозитории не было (см. выше), удалять нечего; копия задания — `docs/prompts/2026-11-10-notepad.md`.
 
 **Итог v1.1.0:** F8.1–F8.20 ✅, S1–S12 покрыты; 423 теста (+81 к v1.0.0) и 12 тестов-скриншотов; покрытие Core 99,3%. Не проверялось вручную на настоящей Windows с окном — только автотесты, headless UI и self-test exe в CI; чек-лист ручной проверки — `docs/DEVELOPMENT.md`, «Блокнот: ручная проверка на Windows (3 минуты)».
+
+### Dependabot: SkiaSharp 4.x отклонён · 2026-11-11
+
+- PR #1 (Dependabot) «Bump SkiaSharp from 3.119.4 to 4.155.0» падал в CI на `restore --locked-mode` (`NU1004`): версия SkiaSharp из `Directory.Packages.props` закрепляет и транзитивную зависимость `Avalonia.Skia` в `WorkTimeTracker.App` и `App.Tests` (`CentralTransitive`), а Dependabot обновил lock-файл только у `tools/IconGen`.
+- Обновлять lock-файлы и мержить не стали: Avalonia 12.1.5 собрана под SkiaSharp 3.119.x, и 4.x сменила бы движок рендера приложения ради утилиты иконки. PR закрыт командой `@dependabot ignore this major version`; в `.github/dependabot.yml` добавлено правило ignore для мажорных обновлений SkiaSharp — переходить на 4.x только вместе с Avalonia.
