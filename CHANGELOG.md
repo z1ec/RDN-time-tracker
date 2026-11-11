@@ -5,6 +5,8 @@
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-11-11
+
 ### Changed
 
 - **«Блокнот» стал песочницей (F9).** У строк блокнота теперь свои дата, время и комментарий. Блокнот принимает любую строку, корректную по формату: пересечения и дубликаты внутри блокнота разрешены, ошибки остаются только у формата.
@@ -69,6 +71,7 @@
 - Скрипты `scripts/build.sh`, `test.sh`, `run.sh`, `publish-win.sh`.
 - Инфраструктура проекта: лицензия MIT, `.gitignore`, `.gitattributes`, `.editorconfig`, журнал разработки и чек-лист прогресса.
 
-[Unreleased]: https://github.com/z1ec/RDN-time-tracker/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/z1ec/RDN-time-tracker/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/z1ec/RDN-time-tracker/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/z1ec/RDN-time-tracker/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/z1ec/RDN-time-tracker/releases/tag/v1.0.0

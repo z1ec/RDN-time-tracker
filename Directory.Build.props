@@ -11,7 +11,7 @@
     <SatelliteResourceLanguages>ru;en</SatelliteResourceLanguages>
 
     <!-- Версия продукта; в CI переопределяется через -p:Version=X.Y.Z -->
-    <Version>1.1.0</Version>
+    <Version>1.2.0</Version>
     <Product>WorkTime Tracker</Product>
     <Company>WorkTime Tracker</Company>
     <Authors>Vladimir</Authors>
