@@ -79,7 +79,7 @@
             </ListBox.KeyBindings>
             <ListBox.ItemTemplate>
               <DataTemplate x:DataType="vm:NotepadLineRow">
-                <Grid ColumnDefinitions="90,140,32,100,Auto,*,Auto,Auto" Background="Transparent"
+                <Grid ColumnDefinitions="90,140,32,100,*,Auto,Auto,Auto" Background="Transparent"
                       DoubleTapped="OnEntryDoubleTapped"
                       AutomationProperties.Name="{Binding AccessibleName}">
                   <Grid.ContextMenu>
@@ -98,7 +98,7 @@
                   </Border>
                   <TextBlock Grid.Column="3" Text="{Binding DurationText}" Classes="subtle" VerticalAlignment="Center" Opacity="{Binding ContentOpacity}" />
                   <!-- Статус строки (F9.3): метка и подсказка с причиной -->
-                  <Panel Grid.Column="4" VerticalAlignment="Center" Margin="0,0,10,0">
+                  <Panel Grid.Column="5" VerticalAlignment="Center" Margin="10,0,8,0">
                     <Border Classes="statusMuted" IsVisible="{Binding IsNotInStatistics}"
                             ToolTip.Tip="{Binding StatusHint}" AutomationProperties.Name="{Binding StatusLabel}">
                       <TextBlock Text="{Binding StatusLabel}" />
@@ -108,7 +108,7 @@
                       <TextBlock Text="{Binding StatusLabel}" />
                     </Border>
                   </Panel>
-                  <TextBlock Grid.Column="5" Text="{Binding Comment}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
+                  <TextBlock Grid.Column="4" Text="{Binding Comment}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
                              Opacity="{Binding ContentOpacity}"
                              ToolTip.Tip="{Binding Comment}" ToolTip.IsEnabled="{Binding HasComment}" />
                   <Button Grid.Column="6" Classes="icon" ToolTip.Tip="Изменить строку (двойной клик)"
@@ -179,7 +179,7 @@
                   <ItemsControl ItemsSource="{Binding Entries}" IsVisible="{Binding IsExpanded}" Margin="40,4,12,8">
                     <ItemsControl.ItemTemplate>
                       <DataTemplate x:DataType="vm:NotepadLineRow">
-                        <Grid ColumnDefinitions="90,140,32,100,Auto,*" Margin="0,5" AutomationProperties.Name="{Binding AccessibleName}">
+                        <Grid ColumnDefinitions="90,140,32,100,*,Auto" Margin="0,5" AutomationProperties.Name="{Binding AccessibleName}">
                           <TextBlock Text="{Binding DateText}" Classes="subtle" VerticalAlignment="Center" Opacity="{Binding ContentOpacity}" />
                           <TextBlock Grid.Column="1" Text="{Binding TimeText}" FontWeight="SemiBold" VerticalAlignment="Center" Opacity="{Binding ContentOpacity}" />
                           <Border Grid.Column="2" IsVisible="{Binding EndsNextDay}" Background="{DynamicResource AccentSoftBrush}"
@@ -187,7 +187,7 @@
                             <TextBlock Text="+1" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextBrush}" />
                           </Border>
                           <TextBlock Grid.Column="3" Text="{Binding DurationText}" Classes="subtle" VerticalAlignment="Center" Opacity="{Binding ContentOpacity}" />
-                          <Panel Grid.Column="4" VerticalAlignment="Center" Margin="0,0,10,0">
+                          <Panel Grid.Column="5" VerticalAlignment="Center" Margin="10,0,8,0">
                             <Border Classes="statusMuted" IsVisible="{Binding IsNotInStatistics}" ToolTip.Tip="{Binding StatusHint}">
                               <TextBlock Text="{Binding StatusLabel}" />
                             </Border>
@@ -195,7 +195,7 @@
                               <TextBlock Text="{Binding StatusLabel}" />
                             </Border>
                           </Panel>
-                          <TextBlock Grid.Column="5" Text="{Binding Comment}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
+                          <TextBlock Grid.Column="4" Text="{Binding Comment}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
                                      Opacity="{Binding ContentOpacity}"
                                      ToolTip.Tip="{Binding Comment}" ToolTip.IsEnabled="{Binding HasComment}" />
                         </Grid>

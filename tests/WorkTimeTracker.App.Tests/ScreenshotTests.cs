@@ -54,8 +54,9 @@ public class ScreenshotTests
     }
 
     /// <summary>
-    /// Демо-блокнот: два листа в архиве и текущий «Лендинг для студии». Листы ведутся «в прошлом»
-    /// (часы хоста переводятся вперёд), затем поверх добавляются обычные демо-записи журнала.
+    /// Демо-блокнот: два листа в архиве и текущий «Лендинг для студии» со всеми тремя статусами строк (F9.3).
+    /// Листы ведутся «в прошлом» (часы хоста переводятся вперёд), затем добавляются обычные демо-записи журнала,
+    /// а поверх них — строки, пересекающиеся с журналом: «не в статистике» и «в статистике другое время».
     /// </summary>
     private static async Task<TestHost> StartWithNotepadAsync()
     {
@@ -63,11 +64,12 @@ public class ScreenshotTests
         await host.Services.GetRequiredService<Data.DatabaseInitializer>().InitializeAsync();
         var notepad = host.NotepadService;
 
-        async Task AddAsync(DateTimeOffset at, string text)
+        async Task<Core.Model.NotepadLine> AddAsync(DateTimeOffset at, string text)
         {
             host.Time.SetUtcNow(at);
             var result = await notepad.AddFromTextAsync(text, host.Today);
             Assert.True(result.IsSuccess, string.Join("; ", result.Errors));
+            return result.Lines[0];
         }
 
         async Task ClearAsync(DateTimeOffset at)
@@ -85,15 +87,23 @@ public class ScreenshotTests
         await AddAsync(new(2026, 11, 7, 19, 2, 0, TimeSpan.Zero), "1430 1900 макет главной страницы");
         await AddAsync(new(2026, 11, 8, 19, 20, 0, TimeSpan.Zero), "1500 1915 вёрстка меню и галереи");
         await AddAsync(new(2026, 11, 9, 8, 16, 0, TimeSpan.Zero), "0630 0815 правки по отзывам заказчика");
+        await AddAsync(new(2026, 11, 9, 8, 18, 0, TimeSpan.Zero), "0700 0815 правки — вторая прикидка"); // пересекается — «не в статистике»
         await ClearAsync(new(2026, 11, 9, 8, 20, 0, TimeSpan.Zero));
 
         host.Time.SetUtcNow(new(2026, 11, 11, 8, 2, 0, TimeSpan.Zero));
         await notepad.SetTitleAsync("Лендинг для студии");
         await AddAsync(new(2026, 11, 11, 8, 2, 0, TimeSpan.Zero), "0630 0800 бриф и референсы");
-        await AddAsync(new(2026, 11, 12, 8, 17, 0, TimeSpan.Zero), "0645 0815 структура страницы");
+        var structure = await AddAsync(new(2026, 11, 12, 8, 17, 0, TimeSpan.Zero), "0645 0815 структура страницы");
 
         host.Time.SetUtcNow(Now);
         await DemoData.SeedAsync(host.Entries, host.Today);
+
+        // Поверх журнала: строка «в статистике» (13:00–14:00 свободно), «не в статистике» (журнал 14:00–16:20)
+        // и правка с пересечением (журнал с 09:10) — «в статистике другое время».
+        await AddAsync(Now, "1300 1400 созвон по макету");
+        await AddAsync(Now, "1500 1600 правки после созвона");
+        var edited = await notepad.UpdateLineAsync(structure.Id, new Core.Model.EntryDraft(host.Today, new Core.Model.TimeRange(405, 570), "структура страницы"));
+        Assert.Equal(Core.Model.NotepadLineStatus.DifferentInStatistics, edited.Line!.Status);
         Assert.True(await host.Main.InitializeAsync());
         return host;
     }
@@ -229,6 +239,17 @@ public class ScreenshotTests
             host.Main.NavigateCommand.Execute("2");
             host.Notepad.Input.QuickInput = "1630 1800 тексты для первого экрана";
             await SaveAsync(window, "notepad-light.png");
+        }
+    }
+
+    [AvaloniaFact]
+    public async Task Notepad_Dark()
+    {
+        var (host, window) = await OpenAsync(ThemeVariant.Dark, notepad: true);
+        using (host)
+        {
+            host.Main.NavigateCommand.Execute("2");
+            await SaveAsync(window, "notepad-dark.png");
         }
     }
 

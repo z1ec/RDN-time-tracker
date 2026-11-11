@@ -75,7 +75,7 @@
 | 2 | Данные: миграция `notepad_items` → `notepad_lines`, репозиторий, S27, инварианты | ✅ | миграция `0004`, S27 (+4 теста), Data 80; вместе с данными — модель строк и сервис (без них не собирается) |
 | 3 | Логика: статусы, F9.2/F9.5/F9.6/F9.7, суммы, S13–S26, S7 | ✅ | `NotepadSandboxTests` — 17 тестов (S13–S26 и края), S7 переписан; сервисный уровень — `NotepadServiceTests` |
 | 4 | UI: метки статусов, подсказки, две суммы, архив, headless smoke | ✅ | метки `statusMuted`/`statusWarning`, пояснение к сумме; `NotepadSmokeTests.TypeRemoveTypeAgain_*` |
-| 5 | Self-test и скриншоты | ⬜ | |
+| 5 | Self-test и скриншоты | ✅ | self-test 21 проверка (+2 по §5); новый `notepad-dark.png`, `notepad-light.png` и `notepad-archive-dark.png` со всеми статусами |
 | 6 | Документация (§6 задания) | ⬜ | |
 | 7 | Независимое ревью | ⬜ | |
 | 8 | Релиз v1.2.0 | ⬜ | |
