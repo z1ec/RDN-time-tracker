@@ -93,20 +93,20 @@
 |---|---|---|---|---|
 | F8.1 | Вкладка «Блокнот» — вторая; `Ctrl+1…5` | ✅ | `MainWindowViewModel.Navigation`, `MainWindow.axaml` (`KeyBinding`, шаблон страницы), `Views/NotepadView` | `SettingsAndAboutTests.Main_Navigation`, `HeadlessSmokeTests.Hotkeys_*`, `NotepadSmokeTests.CtrlTwo_*` |
 | F8.2 | Тот же контрол быстрого ввода и та же форма | ✅ | `EntryInputViewModel` + `Views/EntryInputView` (общие с «Журналом»), `NotepadService.AddFromTextAsync/AddAsync` → `EntryService` | `NotepadViewModelTests.S1_*`, `Form_AddsToNotepadAndJournal`, `NightShift_*`, `NotepadSmokeTests.CtrlTwo_*` |
-| F8.3 | Пересечения — со всеми записями базы | ✅ | `EntryService.CheckOverlapsAsync` (общая проверка) | **S7:** `NotepadViewModelTests.S7_*`, `NotepadServiceTests.S7_*` |
-| F8.4 | Запись и привязка — одна транзакция | ✅ | `NotepadRepository.AddEntriesAsync` (`BEGIN IMMEDIATE`), `EntryRepository.InsertEntries`, делегат `EntryInserter` | `NotepadRepositoryTests.Add_IsAtomic_*`, `Add_FailingLink_RollsBackEntry` |
-| F8.5 | Записи из «Журнала» в блокнот не попадают | ✅ | привязки создаёт только `NotepadRepository.AddEntriesAsync` | **S10:** `NotepadViewModelTests.S10_*`, `NotepadServiceTests.S10_*`, `NotepadRepositoryTests.JournalEntries_*` |
-| F8.6 | Плашка «В блокноте: 7 ч 30 мин · 2 записи · ведётся с …», обновляется сразу, в т. ч. из «Журнала» | ✅ | `NotepadFormat.Summary`, `NotepadViewModel.SummaryText/LoadAsync`, подписка на `AppEvents.EntriesChanged` | **S1, S4, S6:** `NotepadViewModelTests`; `NotepadFormatTests.Summary_*` |
+| F8.3 | Пересечения — со всеми записями базы | ✅ **изменено в v1.2.0 → F9.2**: пересечение — не ошибка, строка «не в статистике» | `EntryService.CheckOverlapsAsync` (общая проверка) | **S7:** `NotepadViewModelTests.S7_*`, `NotepadServiceTests.S7_*` |
+| F8.4 | Запись и привязка — одна транзакция | ✅ | `NotepadRepository.AddLinesAsync` (`BEGIN IMMEDIATE`), `EntryRepository.InsertEntries` | `NotepadRepositoryTests.Add_IsAtomic_*`, `Add_FailingLink_RollsBackEntry` |
+| F8.5 | Записи из «Журнала» в блокнот не попадают | ✅ | строки создаёт только `NotepadRepository.AddLinesAsync` | **S10:** `NotepadViewModelTests.S10_*`, `NotepadServiceTests.S10_*`, `NotepadRepositoryTests.JournalEntries_*` |
+| F8.6 | Плашка «В блокноте: 7 ч 30 мин · 2 записи · ведётся с …», обновляется сразу, в т. ч. из «Журнала» | ✅ **изменено в v1.2.0 → F9.4**: сумма всех строк + сумма в статистике | `NotepadFormat.Summary`, `NotepadViewModel.SummaryText/LoadAsync`, подписка на `AppEvents.EntriesChanged` | **S1, S4, S6:** `NotepadViewModelTests`; `NotepadFormatTests.Summary_*` |
 | F8.7 | Название листа на плашке, до 100 символов, «Без названия» | ✅ | `NotepadViewModel.Title`, `NotepadService.SetTitleAsync/NormalizeTitle`, `NotepadView` (`TitleBox`), `CHECK` в схеме | `NotepadViewModelTests.Title_*` (в т. ч. название + немедленная очистка/добавление), `NotepadServiceTests.NormalizeTitle_*`, `NotepadSmokeTests.Title_*` (Enter, уход со вкладки, закрытие окна) |
 | F8.8 | Порядок по дате и началу, дата в каждой строке | ✅ | `NotepadRepository.LoadEntries` (`ORDER BY`), `EntryRow.DateText` | `NotepadViewModelTests.NightShift_CountsWhole_OrderByDateAndStart`, `S1_*` |
-| F8.9 | Блокнот, название и архив переживают перезапуск | ✅ | всё в SQLite (`notepad_sheets`, `notepad_items`) | **S3:** `NotepadViewModelTests.S3_*`; `NotepadRepositoryTests.Data_SurvivesReopen` |
-| F8.10 | Правка меняет саму запись (тот же диалог) | ✅ | `NotepadViewModel.EditEntryAsync` → `EntryEditorViewModel` → `EntryService.UpdateAsync` | **S4:** `NotepadViewModelTests.S4_*`, `Edit_Cancelled_*` |
+| F8.9 | Блокнот, название и архив переживают перезапуск | ✅ | всё в SQLite (`notepad_sheets`, `notepad_lines`) | **S3:** `NotepadViewModelTests.S3_*`; `NotepadRepositoryTests.Data_SurvivesReopen` |
+| F8.10 | Правка меняет саму запись (тот же диалог) | ✅ **изменено в v1.2.0 → F9.5, F9.6**: правка меняет строку, запись — только без пересечений | `NotepadViewModel.EditEntryAsync` → `EntryEditorViewModel` → `EntryService.UpdateAsync` | **S4:** `NotepadViewModelTests.S4_*`, `Edit_Cancelled_*` |
 | F8.11 | ✕ / `Del` / меню — убрать только из блокнота; множественный выбор; отмена | ✅ | `NotepadViewModel.RemoveEntry/RemoveSelected`, `NotepadRepository.RemoveItemsAsync/RestoreItemsAsync`, `NotepadView` (кнопка, `ContextMenu`, `KeyBinding Delete`) | **S5:** `NotepadViewModelTests.S5_*`, `Remove_MultipleSelected_*`, `NotepadSmokeTests.Delete_*` |
 | F8.12 | Удаление в «Журнале» — отовсюду; отмена возвращает; подсказка дополнена | ✅ | видимость через `entries.deleted_at` в `NotepadRepository.LoadEntries`; `JournalView.axaml` (подсказка) | **S6:** `NotepadViewModelTests.S6_*`; `NotepadRepositoryTests.SoftDeletedEntry_*`; `NotepadSmokeTests.JournalDeleteTooltip_MentionsNotepad` |
 | F8.13 | Полного удаления записи во вкладке нет | ✅ | у `NotepadViewModel` нет команды удаления записи; `INotepadRepository` не изменяет `entries` | `NotepadViewModelTests.S5_*` (дамп `entries` не меняется) |
 | F8.14 | «Очистить всё» → архив; без подтверждения, с отменой; неактивна при пустом блокноте | ✅ | `NotepadViewModel.ClearAllAsync` (`CanClear`), `NotepadService.ClearAsync/UndoClearAsync`, `NotepadRepository.ClearCurrentAsync/UndoClearAsync` | **S2, S8:** `NotepadViewModelTests.S2_*`, `S8_*`, `Clear_*`; `NotepadRepositoryTests.UndoClear_*` |
 | F8.15 | Архив: «Текущий \| Архив (N)», карточки, раскрытие записей | ✅ | `NotepadViewModel.SelectedTabIndex/ArchiveSheets`, `ArchiveSheetViewModel`, `NotepadFormat.SheetTitle/DateRange/Cleared` | `NotepadViewModelTests.Archive_NewestFirst_Tabs_EmptyStates`, `S2_*`; `NotepadFormatTests`; `NotepadSmokeTests.Title_Clear_Archive_*` |
-| F8.16 | Архив «живой»; «записи удалены» | ✅ | записи листа — соединение с `entries` при чтении; `ArchiveSheetViewModel.AllEntriesDeleted` | `NotepadViewModelTests.Archive_IsLive_EditedAndAllDeleted`, `S6_*`; `NotepadRepositoryTests.Archive_IsLive_*` |
+| F8.16 | Архив «живой»; «записи удалены» | ✅ **изменено в v1.2.0 → F9.6, F9.9**: «живой» = связанные строки получают правки из «Журнала» | записи листа — соединение с `entries` при чтении; `ArchiveSheetViewModel.AllEntriesDeleted` | `NotepadViewModelTests.Archive_IsLive_EditedAndAllDeleted`, `S6_*`; `NotepadRepositoryTests.Archive_IsLive_*` |
 | F8.17 | «Удалить из архива» — только лист; отмена | ✅ | `NotepadViewModel.DeleteSheetAsync`, `NotepadRepository.DeleteSheetAsync/RestoreSheetAsync` | **S9:** `NotepadViewModelTests.S9_*`, `NotepadServiceTests.S9_*` |
 | F8.18 | Очистка мусора при запуске (30 дней) | ✅ | `NotepadRepository.PurgeAsync`, `DatabaseInitializer` | **S12:** `NotepadViewModelTests.S12_*`; `NotepadRepositoryTests.Purge_*`, `Startup_PurgesNotepadGarbage` |
 | F8.19 | Пустые состояния блокнота и архива | ✅ | `NotepadViewModel.EmptyCurrentText/EmptyArchiveText`, `NotepadView.axaml` | `NotepadViewModelTests.Archive_NewestFirst_Tabs_EmptyStates`, `NotepadSmokeTests` |
@@ -124,7 +124,7 @@
 | S4 | Правка 09:00–19:00 → 09:00–18:00 | `S4_EditInNotepad_ChangesEntryEverywhere` |
 | S5 | ✕ и «Отменить» | `S5_Remove_KeepsEntryInJournalAndStatistics_UndoReturns` |
 | S6 | Удаление в «Журнале» записей текущего и архивного листа, отмена | `S6_DeleteInJournal_RemovesFromNotepadAndArchive_UndoRestores` |
-| S7 | Пересечение с записью журнала | `S7_OverlapWithJournalEntry_NothingAddedAnywhere` |
+| S7 | Пересечение с записью журнала (переписан в v1.2.0: строка «не в статистике», база не меняется) | `S7_OverlapWithJournalEntry_LineOnlyInNotepad` (+ `NotepadServiceTests.S7_*`) |
 | S8 | «Очистить всё» → «Отменить» | `S8_AccidentalClear_UndoRestoresSheetWithTitle` |
 | S9 | «Удалить из архива» → «Отменить» | `S9_DeleteFromArchive_KeepsEntries_UndoReturnsSheet` |
 | S10 | Запись добавлена через «Журнал» | `S10_EntryAddedInJournal_DoesNotAppearInNotepad` |
@@ -133,7 +133,46 @@
 
 «Статистика не изменилась» проверяется двумя способами: отпечаток всех показателей `StatisticsViewModel` за месяц и побайтный дамп таблицы `entries` (включая `updated_at`) до и после действия. То же — в `--self-test` на настоящем exe (`SelfTest.RunNotepadChecks`).
 
-Миграция БД 1.0.0 с данными — `NotepadMigrationTests.DatabaseV100_WithData_MigratesAndKeepsEverything`.
+Миграция БД 1.0.0 с данными — `NotepadMigrationTests.DatabaseV100_WithData_MigratesAndKeepsEverything` (с v1.2.0 — вся цепочка до схемы 4).
+
+## F9. Блокнот-песочница (v1.2.0)
+
+Задание — [`prompts/2026-11-11-notepad-sandbox.md`](prompts/2026-11-11-notepad-sandbox.md), решения — [ADR-0010](adr/0010-notepad-sandbox.md), данные — [`DATA_MODEL.md`](DATA_MODEL.md#блокнот-f8-f9-миграции-0003-и-0004). Заменяет F8.3, F8.6, F8.10 и уточняет F8.16 (строки выше помечены, а не удалены).
+
+| ID | Требование | Статус | Где реализовано | Тесты |
+|---|---|---|---|---|
+| F9.1 | Блокнот принимает любую строку, корректную по формату; пересечения и дубликаты разрешены; многострочная вставка атомарна по ошибкам формата | ✅ | `NotepadService.AddFromTextAsync/AddAsync` (ошибки только от `QuickEntryParser`/`EntryRules`), `NotepadViewModel.ToInputResult` | **S24, S11:** `NotepadSandboxTests.S24_*`, `NotepadServiceTests.S11_S24_*`, `Add_Multiline_Form_Empty`; `NotepadRepositoryTests.AddLines_MixedLinkedAndFree_*` |
+| F9.2 | В базу — только без пересечений (тот же `EntryValidator`, соседние дни); строка и запись — одна транзакция; вставка — по порядку | ✅ | `EntryService.FindConflictsAsync(accumulate: true)`, `NotepadService.AddDraftsAsync`, `NotepadRepository.AddLinesAsync` | **S7, S13, S14, S15, S16, S23:** `NotepadSandboxTests`, `NotepadServiceTests`; `NotepadRepositoryTests.Add_IsAtomic_*` |
+| F9.3 | Статусы «в статистике» / «не в статистике» / «в статистике другое время» — вычисляются; метки и подсказки с конфликтом на момент показа | ✅ | `NotepadLine.Status`, `NotepadService.WithConflictsAsync`, `NotepadFormat.StatusLabel/StatusHint`, `NotepadLineRow`, `NotepadView.axaml` (`Border.statusMuted/statusWarning`) | `NotepadFormatTests.Status_*`, `StatusLabelAndHint_*`; **S18, S22:** `NotepadSandboxTests`; `NotepadSmokeTests.TypeRemoveTypeAgain_*` |
+| F9.4 | Плашка: сумма всех строк; если сумма связанных записей в базе отличается — «· в статистике: …» | ✅ | `NotepadSheetView.TotalMinutes/StatisticsMinutes/HasStatisticsDifference`, `NotepadFormat.Summary/Totals/SummaryHint` | `NotepadFormatTests.Totals_SecondFigure_*`; **S14, S16, S18:** `NotepadSandboxTests` |
+| F9.5 | ✎ строки: строка меняется всегда; связанная — запись меняется, если нет пересечений, иначе «другое время»; несвязанная без пересечений — создаётся запись | ✅ | `NotepadService.UpdateLineAsync`, `NotepadRepository.UpdateLineAsync` (`NotepadLineUpdate`), `EntryEditorViewModel` (подставляемое сохранение), `NotepadViewModel.EditEntryAsync` | **S17–S20:** `NotepadSandboxTests`, `NotepadServiceTests`; `NotepadRepositoryTests.UpdateLine_*`; `Edit_LinkedLine_NightShift_*` |
+| F9.6 | Правка записи в «Журнале» всегда переносится в связанную строку; статус — «в статистике» | ✅ | `EntryRepository.UpdateAsync` → `UpdateEntry` (та же транзакция) | **S21:** `NotepadSandboxTests.S21_*`, `NotepadServiceTests.S21_*`; `NotepadRepositoryTests.JournalEdit_SyncsLinkedLine_*`, `Archive_IsLive_*` |
+| F9.7 | Удаление в «Журнале» — как F8.12; несвязанные строки не затрагиваются | ✅ | видимость `entry_id IS NULL OR entries.deleted_at IS NULL` в `NotepadRepository` | **S22:** `NotepadSandboxTests.S22_*`, `NotepadServiceTests.S22_*`; `NotepadRepositoryTests.FreeLines_NotAffectedByJournalDelete_*` |
+| F9.8 | ✕ — только из блокнота, запись остаётся; отмена; после ✕ то же время вводится снова («не в статистике») — **исправление исходного бага** | ✅ | `NotepadService.RemoveAsync/UndoRemoveAsync` → `NotepadRepository.RemoveLinesAsync/RestoreLinesAsync` (по id строки) | **S13, S5:** `NotepadSandboxTests.S13_*`, `NotepadServiceTests.S13_*`, `NotepadSmokeTests.TypeRemoveTypeAgain_*` |
+| F9.9 | Очистка, архив, отмена, перезапуск — как F8.14–F8.18; архив со статусами и двумя суммами; очистка, архив и ✕ не меняют `entries` | ✅ | `ArchiveSheetViewModel` (`NotepadFormat.Totals(view)`, `NotepadLineRow`), `NotepadService.GetArchiveAsync` | **S25, S26:** `NotepadSandboxTests`; S2, S5, S8, S9, S12; `--self-test` (`SelfTest.RunNotepadChecks`) |
+| F9.10 | Вкладка «Журнал» не меняется: пересечение — ошибка | ✅ | `EntryService.AddFromTextAsync/AddAsync/UpdateAsync` (`CheckOverlapsAsync`) | `JournalViewModelTests` (пересечения), `EntryServiceTests` |
+
+### Сценарии приёмки v1.2.0
+
+Тесты на настоящих ViewModel и БД — `tests/WorkTimeTracker.App.Tests/NotepadSandboxTests.cs`; уровень сервисов — `NotepadServiceTests`; данные — `NotepadLinesMigrationTests`. Исходный баг воспроизведён тестом на коде v1.1.0 до исправления (`docs/DEVELOPMENT_LOG.md`, v1.2.0).
+
+| ID | Сценарий | Тест |
+|---|---|---|
+| S13 | Исходный баг: `1100 1300` → ✕ → снова `1100 1300` | `S13_AddRemoveAddAgain_SecondLineNotInStatistics`, `NotepadSmokeTests.TypeRemoveTypeAgain_SecondLineShownNotInStatistics` |
+| S14 | Пересечение внутри блокнота, две суммы | `S14_OverlapInsideNotepad_TwoSums` |
+| S15 | Прикидка: три варианта одного интервала | `S15_Estimates_OnlyFirstInStatistics` |
+| S16 | Пустой день, все «в статистике», вторая цифра не показывается | `S16_EmptyDay_AllInStatistics_NoSecondFigure` |
+| S17 | ✎ связанной строки без пересечений | `S17_EditLinkedLine_NoOverlap_EntryAndStatisticsUpdated` |
+| S18 | ✎ связанной строки с пересечением | `S18_EditLinkedLine_WithOverlap_DifferentInStatistics_DatabaseUnchanged` |
+| S19 | ✎ несвязанной строки без пересечений | `S19_EditFreeLine_NoOverlap_EntryCreated_StatisticsGrow` |
+| S20 | ✎ несвязанной строки, всё ещё пересекается | `S20_EditFreeLine_StillOverlaps_StaysNotInStatistics` |
+| S21 | Правка в «Журнале» строки «другое время» | `S21_EditInJournal_OverridesDifferentLine` |
+| S22 | Удаление в «Журнале» и отмена; несвязанная строка на месте | `S22_DeleteInJournal_LinkedLineGoesAndReturns_FreeLineStays` |
+| S23 | Многострочная вставка с пересечением внутри вставки | `S23_MultilinePaste_OverlapWithEarlierLineOfSameBatch` |
+| S24 | Многострочная вставка с ошибкой формата | `S24_MultilinePaste_WithFormatError_AddsNothing` |
+| S25 | «Очистить всё» при смешанных статусах | `S25_ClearWithMixedStatuses_ArchiveShowsStatusesAndBothSums` |
+| S26 | Перезапуск поверх той же БД | `S26_Restart_KeepsLinesStatusesAndSums` |
+| S27 | Миграция с БД v1.1.0 (и цепочка с v1.0.0) | `NotepadLinesMigrationTests.S27_*`, `Migration0004_*`; `NotepadMigrationTests.DatabaseV100_*` |
 
 ## Нефункциональные требования
 
@@ -146,6 +185,6 @@
 | `AutomationProperties.Name` у контролов | ✅ | все интерактивные элементы в `Views/*.axaml`; headless-тесты ищут по ним |
 | Без `DataGrid`, без платных компонентов, только MIT/Apache/BSD | ✅ | `Directory.Packages.props`: Avalonia (MIT), CommunityToolkit.Mvvm (MIT), Dapper (Apache-2.0), Serilog (Apache-2.0), Microsoft.* (MIT), xUnit (Apache-2.0), coverlet (MIT), SkiaSharp (MIT) |
 
-## Вне рамок v1.0.0 и v1.1.0
+## Вне рамок v1.0.0–v1.2.0
 
 Установщик, подпись кода, облачная синхронизация, таймер «старт/стоп», проекты и теги, импорт CSV, автообновление, мультиязычность, версии для macOS/Linux — ⏭ `docs/ROADMAP.md`.

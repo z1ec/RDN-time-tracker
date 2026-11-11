@@ -1,7 +1,7 @@
 # CLAUDE.md — WorkTime Tracker
 
 Трекер рабочего времени для Windows на C# / .NET 10 / Avalonia 12. Пользователь вводит периоды
-строкой (`0900 1800 созвон`) или через форму, ведёт «Блокнот» (лист с суммой и архивом), смотрит статистику;
+строкой (`0900 1800 созвон`) или через форму, ведёт «Блокнот» (песочница с суммой и архивом), смотрит статистику;
 данные — в локальной SQLite. Разработка и тесты — на macOS/Linux, Windows-exe собирает GitHub Actions.
 Репозиторий: https://github.com/z1ec/RDN-time-tracker (папка — клон существующего репо владельца).
 
@@ -32,7 +32,7 @@
   - `Statistics/` — `PeriodNavigator`, `StatisticsCalculator` (`docs/STATISTICS.md`);
   - `Formatting/` — `RuFormat`, `DurationFormatter`; `Export/CsvExporter`;
   - `Services/EntryService` — сценарии добавления/изменения/удаления поверх `IEntryRepository`;
-  - `Services/NotepadService` + `Model/NotepadSheet` + `Formatting/NotepadFormat` — блокнот (F8, ADR-0009).
+  - `Services/NotepadService` + `Model/NotepadSheet` (`NotepadLine`, статусы) + `Formatting/NotepadFormat` — блокнот (F8, F9, ADR-0009, ADR-0010).
 - `src/WorkTimeTracker.Data` — `DataPaths`, `SqliteConnectionFactory`, `Migrator` + `Migrations/*.sql`,
   `EntryRepository`, `NotepadRepository`, `SettingsStore`, `BackupService`, `DatabaseInitializer` (`docs/DATA_MODEL.md`).
 - `src/WorkTimeTracker.App` — `Program.cs` (культура, CLI), `App.axaml.cs` (запуск, логи, ошибки),
@@ -51,12 +51,16 @@
 - **Пересечения** — только через `EntryValidator` в абсолютных минутах (соседние дни ±1); касание допустимо.
 - **`TimeProvider` везде** вместо `DateTime.Now`/`Today`; «сегодня» — `EntryService.Today`.
 - **Мягкое удаление:** каждая выборка из `entries` — с `deleted_at IS NULL`. Отмена — только последнего удаления, пока не было других изменений.
-- **Блокнот (F8):** листы `notepad_sheets` + привязки `notepad_items` поверх `entries`; `entries` блокнот не меняет и не
-  удаляет (только добавление и правка через `EntryService`). Запись + привязка — одна транзакция
-  (`NotepadRepository.AddEntriesAsync`). Текущий лист один (уникальный индекс), создаётся лениво. Видимые записи листа:
-  `removed_at IS NULL` и `entries.deleted_at IS NULL`; архив — «живой» JOIN, не снимок. ✕ в блокноте ≠ удаление в журнале.
+- **Блокнот-песочница (F8, F9, ADR-0010):** листы `notepad_sheets` + строки `notepad_lines` со **своими** датой, временем и
+  комментарием; `entry_id` связывает строку с записью (NULL = «не в статистике»), запись — максимум с одной строкой.
+  Пересечение в блокноте — не ошибка: в `entries` пишем только строку без пересечений (`EntryService.FindConflictsAsync`,
+  по порядку вставки), строка + запись — одна транзакция (`NotepadRepository.AddLinesAsync`). Правка строки
+  (`NotepadService.UpdateLineAsync`) меняет строку всегда, запись — только без пересечений (иначе «в статистике другое
+  время»). Правка записи в «Журнале» переносится в связанную строку в той же транзакции (`EntryRepository.UpdateAsync`).
+  Статус вычисляется (`NotepadLine.Status`), не хранится. Видимость: `removed_at IS NULL AND (entry_id IS NULL OR
+  entries.deleted_at IS NULL)`. ✕, очистка и архив **никогда** не меняют `entries`; ✕ в блокноте ≠ удаление в журнале.
 - **Отмена:** у «Журнала» и «Блокнота» свой `UndoToastViewModel`; `Ctrl+Z` → `MainWindowViewModel.ActiveUndo` (активная вкладка).
-  «Блокнот» поднимает `AppEvents.EntriesChanged` только когда меняются сами записи (добавление, правка).
+  «Блокнот» поднимает `AppEvents.EntriesChanged` только когда записи реально изменились (строка записана или запись изменена).
 - **Миграции только добавляются** (`NNNN_*.sql`, подряд с 1); существующие не редактировать. БД никогда не удалять и не пересоздавать автоматически.
 - **Кириллица:** `LOWER`/`LIKE` в SQLite — только ASCII → поиск фильтруется в C# (`RuFormat.Culture.CompareInfo`).
 - **Культура:** отображение только через `RuFormat` (явные русские названия поверх ru-RU — одинаково на NLS/ICU).
