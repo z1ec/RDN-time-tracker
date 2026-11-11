@@ -211,24 +211,77 @@ public class NotepadLinesMigrationTests
     }
 
     [Fact]
-    public async Task Migration0004_LinkWithoutEntry_AbortsAndKeepsOldTables()
+    public async Task Migration0004_LinkWithoutEntry_Skipped_OtherLinesMigrated()
     {
-        // Привязка к несуществующей записи (в 1.1.0 невозможна при foreign_keys=ON, но БД могли изменить снаружи):
-        // перенести её значения неоткуда — миграция откатывается целиком, а не теряет строку молча.
+        // Привязка к несуществующей записи (в 1.1.0 невозможна при foreign_keys=ON, но БД могли править внешней
+        // утилитой): данных в ней нет и в 1.1.0 она не показывалась — миграция её пропускает, а не блокирует запуск.
         using var db = CreateV110();
         using (var c = db.Factory.Open())
         {
             c.Execute("PRAGMA foreign_keys = OFF; INSERT INTO notepad_items (entry_id, sheet_id, added_at) VALUES (999, 3, '2026-11-10T09:00:00.000Z'); PRAGMA foreign_keys = ON;");
         }
 
-        await Assert.ThrowsAsync<SqliteException>(() => db.Migrator.MigrateAsync(ct: _ct));
+        var result = await db.Migrator.MigrateAsync(ct: _ct);
+
+        Assert.Equal((3, 4), (result.FromVersion, result.ToVersion));
+        using var c2 = db.Factory.Open();
+        Assert.Equal(10, c2.ExecuteScalar<int>("SELECT count(*) FROM notepad_lines")); // все 10 настоящих привязок
+        Assert.Equal(0, c2.ExecuteScalar<int>("SELECT count(*) FROM notepad_lines WHERE entry_id = 999"));
+        Assert.Empty(c2.Query("PRAGMA foreign_key_check"));
+    }
+
+    [Fact]
+    public async Task Migration0004_LostLine_AbortsAndKeepsOldTables()
+    {
+        // Сверка в самой миграции: если перенос потерял строку (здесь — триггер, удаляющий одну), миграция
+        // откатывается целиком, notepad_items остаётся, версия схемы прежняя.
+        using var db = CreateV110();
+        var sql = Migrator.Embedded.Single(m => m.Version == 4).Sql.Replace(
+            "CREATE TEMP TABLE migration_0004_check",
+            "DELETE FROM notepad_lines WHERE id = (SELECT max(id) FROM notepad_lines);\nCREATE TEMP TABLE migration_0004_check",
+            StringComparison.Ordinal);
+        Assert.Contains("DELETE FROM notepad_lines", sql, StringComparison.Ordinal);
+        var migrations = Migrator.Embedded.Where(m => m.Version < 4).Append(new Migration(4, "0004_notepad_lines.sql", sql)).ToList();
+
+        await Assert.ThrowsAsync<SqliteException>(() => db.Migrator.MigrateAsync(migrations, _ct));
 
         Assert.Equal(3, await db.Migrator.GetVersionAsync(_ct));
+        using var c = db.Factory.Open();
+        Assert.Equal(10, c.ExecuteScalar<int>("SELECT count(*) FROM notepad_items"));
+        Assert.Equal(0, c.ExecuteScalar<int>("SELECT count(*) FROM sqlite_master WHERE name = 'notepad_lines'"));
+    }
+
+    [Fact]
+    public async Task Startup_V110_TodaysBackupExists_StillBacksUpBeforeMigration()
+    {
+        // Утром уже был запуск 1.1.0 (ежедневная копия есть), потом в блокноте поработали — и в тот же день
+        // поставили 1.2.0: перед миграцией всё равно делается свежая копия со всеми данными схемы 1.1.0.
+        using var db = CreateV110();
+        var morning = await db.Backups.BackupNowAsync(_ct);
         using (var c = db.Factory.Open())
         {
-            Assert.Equal(11, c.ExecuteScalar<int>("SELECT count(*) FROM notepad_items"));
-            Assert.Equal(0, c.ExecuteScalar<int>("SELECT count(*) FROM sqlite_master WHERE name = 'notepad_lines'"));
+            c.Execute("UPDATE notepad_items SET removed_at = '2026-11-10T13:00:00.000Z' WHERE entry_id = 10");
         }
+
+        var result = await db.Initializer.InitializeAsync(_ct);
+
+        Assert.Null(result.AutoBackupPath); // ежедневная копия за сегодня уже была
+        Assert.NotNull(result.MigrationBackupPath);
+        Assert.StartsWith(Path.Combine(db.Paths.BackupsDirectory, BackupService.BeforeMigrationFolder), result.MigrationBackupPath, StringComparison.Ordinal);
+        Assert.EndsWith("worktime-v3-to-v4-2026-11-10-143700.db", result.MigrationBackupPath, StringComparison.Ordinal);
+        using (var c = new SqliteConnectionFactory(result.MigrationBackupPath!).Open())
+        {
+            Assert.Equal(3, c.ExecuteScalar<int>("SELECT MAX(version) FROM schema_version"));
+            Assert.Equal("2026-11-10T13:00:00.000Z", c.ExecuteScalar<string>("SELECT removed_at FROM notepad_items WHERE entry_id = 10"));
+        }
+
+        // Ручная копия в тот же день перезаписывает ежедневную, но не копию перед миграцией; ротация её не видит.
+        Assert.Equal(morning, await db.Backups.BackupNowAsync(_ct));
+        Assert.True(File.Exists(result.MigrationBackupPath));
+        Assert.DoesNotContain(result.MigrationBackupPath, db.Backups.ListBackups());
+
+        // Повторный запуск — схема уже новая, копия перед миграцией не делается.
+        Assert.Null((await db.Initializer.InitializeAsync(_ct)).MigrationBackupPath);
     }
 
     [Fact]

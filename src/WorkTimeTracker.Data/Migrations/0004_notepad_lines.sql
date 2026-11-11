@@ -23,11 +23,13 @@ FROM notepad_items i
 JOIN entries e ON e.id = i.entry_id
 ORDER BY i.added_at, i.entry_id;
 
--- Защита от потери данных: перенесено ровно столько строк, сколько было привязок. Иначе CHECK
--- прерывает скрипт, и Migrator откатывает миграцию целиком — notepad_items остаётся на месте.
+-- Защита от потери данных: перенесена каждая привязка, у которой есть запись. Иначе CHECK прерывает скрипт,
+-- и Migrator откатывает миграцию целиком — notepad_items остаётся на месте.
+-- Привязка без записи (возможна только после правки БД внешней утилитой с foreign_keys=OFF) не переносится:
+-- времени и комментария в ней нет, а в 1.1.0 она и так была невидима (показ шёл через JOIN entries).
 CREATE TEMP TABLE migration_0004_check (ok INTEGER NOT NULL CHECK (ok = 1));
 INSERT INTO migration_0004_check (ok)
-SELECT (SELECT count(*) FROM notepad_lines) = (SELECT count(*) FROM notepad_items);
+SELECT (SELECT count(*) FROM notepad_lines) = (SELECT count(*) FROM notepad_items i JOIN entries e ON e.id = i.entry_id);
 DROP TABLE migration_0004_check;
 
 DROP TABLE notepad_items;

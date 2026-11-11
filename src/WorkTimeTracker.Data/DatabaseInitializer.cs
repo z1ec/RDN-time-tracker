@@ -4,7 +4,12 @@ using WorkTimeTracker.Core.Model;
 namespace WorkTimeTracker.Data;
 
 /// <summary>Итог подготовки БД при запуске.</summary>
-public sealed record DatabaseStartupResult(MigrationResult Migration, string? AutoBackupPath, int PurgedEntries, NotepadPurgeResult PurgedNotepad);
+/// <param name="Migration">Применённые миграции.</param>
+/// <param name="AutoBackupPath">Ежедневная копия или <c>null</c>, если копия за сегодня уже была.</param>
+/// <param name="PurgedEntries">Сколько удалённых записей очищено физически.</param>
+/// <param name="PurgedNotepad">Сколько строк и листов блокнота очищено физически.</param>
+/// <param name="MigrationBackupPath">Копия перед обновлением схемы или <c>null</c>, если обновлять было нечего.</param>
+public sealed record DatabaseStartupResult(MigrationResult Migration, string? AutoBackupPath, int PurgedEntries, NotepadPurgeResult PurgedNotepad, string? MigrationBackupPath = null);
 
 /// <summary>
 /// Не удалось открыть или подготовить БД (F4.7). Данные при этом не трогаются:
@@ -17,7 +22,7 @@ public sealed class DatabaseOpenException(string databasePath, Exception inner)
 }
 
 /// <summary>
-/// Подготовка БД при запуске: папки → автобэкап существующей БД (F4.5) → миграции (F4.4) →
+/// Подготовка БД при запуске: папки → автобэкап существующей БД (F4.5) → копия перед обновлением схемы → миграции (F4.4) →
 /// физическое удаление мягко удалённых записей старше 30 дней (F5.3) и мусора блокнота по тому же правилу (F8.18).
 /// БД никогда не удаляется и не пересоздаётся автоматически (F4.7).
 /// </summary>
@@ -37,10 +42,17 @@ public sealed class DatabaseInitializer(DataPaths paths, SqliteConnectionFactory
 
             // Копия делается до миграций: если миграция что-то испортит, останется исходная БД.
             var backup = existed ? await backups.AutoBackupAsync(ct).ConfigureAwait(false) : null;
+
+            // Перед обновлением схемы — отдельная копия, даже если ежедневная уже сделана раньше сегодня:
+            // в ней все изменения до этой минуты, и её не перезапишет ни автобэкап, ни ручная копия.
+            var version = existed ? await migrator.GetVersionAsync(ct).ConfigureAwait(false) : 0;
+            var migrationBackup = version > 0 && version < Migrator.LatestVersion
+                ? await backups.BeforeMigrationBackupAsync(version, Migrator.LatestVersion, ct).ConfigureAwait(false)
+                : null;
             var migration = await migrator.MigrateAsync(ct: ct).ConfigureAwait(false);
             var purged = await entries.PurgeDeletedAsync(time.GetUtcNow() - PurgeAfter, ct).ConfigureAwait(false);
             var purgedNotepad = await notepad.PurgeAsync(time.GetUtcNow() - PurgeAfter, ct).ConfigureAwait(false);
-            return new DatabaseStartupResult(migration, backup, purged, purgedNotepad);
+            return new DatabaseStartupResult(migration, backup, purged, purgedNotepad, migrationBackup);
         }
         catch (Exception ex) when (ex is SqliteException or IOException or UnauthorizedAccessException or DatabaseTooNewException)
         {

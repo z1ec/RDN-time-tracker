@@ -47,7 +47,7 @@
 | F4.2 | `%LOCALAPPDATA%\WorkTimeTracker\worktime.db`, `--data-dir` | ✅ | `Data/DataPaths.cs`, `App/Services/CommandLineOptions.cs` | `DataPathsTests`, `CommandLineOptionsTests` |
 | F4.3 | Портативный режим `portable.txt` (P1) | ✅ | `DataPaths.Resolve` | `DataPathsTests.PortableMarker_UsesDataNextToExe` |
 | F4.4 | `schema_version`, миграции-скрипты, только добавляются | ✅ | `Data/Migrator.cs`, `Data/Migrations/*.sql` | `MigratorTests` (пустая → последняя, N → N+1, откат, БД новее программы) |
-| F4.5 | Автобэкап раз в день (Backup API), 14 копий, кнопка «сейчас» (P1) | ✅ | `Data/BackupService.cs`, `DatabaseInitializer`, `SettingsViewModel.BackupNowAsync` | `BackupServiceTests`, `DatabaseInitializerTests.NextRun_*`, `SettingsAndAboutTests.Settings_BackupNow_*` |
+| F4.5 | Автобэкап раз в день (Backup API), 14 копий, кнопка «сейчас» (P1); с v1.2.0 — всегда отдельная копия перед обновлением схемы (`backups\before-migration`, не ротируется) | ✅ | `Data/BackupService.cs` (`BeforeMigrationBackupAsync`), `DatabaseInitializer`, `SettingsViewModel.BackupNowAsync` | `BackupServiceTests`, `DatabaseInitializerTests.NextRun_*`, `SettingsAndAboutTests.Settings_BackupNow_*`, `NotepadLinesMigrationTests.Startup_V110_TodaysBackupExists_*` |
 | F4.6 | WAL, foreign_keys | ✅ | `Data/SqliteConnectionFactory.cs` | `MigratorTests.EmptyDatabase_MigratesToLatest` |
 | F4.7 | БД не открывается → понятный диалог с путём и «Открыть папку», данные не удаляются | ✅ | `DatabaseInitializer` (`DatabaseOpenException`), `MainWindowViewModel.InitializeAsync`, `Views/MessageWindow` | `DatabaseInitializerTests.CorruptFile_*`, `TooNewDatabase_*`, `SettingsAndAboutTests.Main_CorruptDatabase_*` |
 | F4.8 | Размер и положение окна (P2) | ✅ | `App/Services/WindowPlacementService.cs`, `SettingsStore` (`window`) | `SettingsStoreTests.SaveAndLoad_RoundTrip` (сохранение); восстановление — ручная проверка (`docs/DEVELOPMENT.md`, п. 12) |
@@ -172,7 +172,7 @@
 | S24 | Многострочная вставка с ошибкой формата | `S24_MultilinePaste_WithFormatError_AddsNothing` |
 | S25 | «Очистить всё» при смешанных статусах | `S25_ClearWithMixedStatuses_ArchiveShowsStatusesAndBothSums` |
 | S26 | Перезапуск поверх той же БД | `S26_Restart_KeepsLinesStatusesAndSums` |
-| S27 | Миграция с БД v1.1.0 (и цепочка с v1.0.0) | `NotepadLinesMigrationTests.S27_*`, `Migration0004_*`; `NotepadMigrationTests.DatabaseV100_*` |
+| S27 | Миграция с БД v1.1.0 (и цепочка с v1.0.0); копия перед миграцией | `NotepadLinesMigrationTests.S27_*`, `Migration0004_*`, `Startup_V110_TodaysBackupExists_*`; `NotepadMigrationTests.DatabaseV100_*` |
 
 ## Нефункциональные требования
 

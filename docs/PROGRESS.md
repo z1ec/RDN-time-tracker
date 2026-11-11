@@ -77,7 +77,7 @@
 | 4 | UI: метки статусов, подсказки, две суммы, архив, headless smoke | ✅ | метки `statusMuted`/`statusWarning`, пояснение к сумме; `NotepadSmokeTests.TypeRemoveTypeAgain_*` |
 | 5 | Self-test и скриншоты | ✅ | self-test 21 проверка (+2 по §5); новый `notepad-dark.png`, `notepad-light.png` и `notepad-archive-dark.png` со всеми статусами |
 | 6 | Документация (§6 задания) | ✅ | ADR-0010 (+ статус ADR-0009), FEATURES (F9, S13–S27, пометки F8.3/F8.6/F8.10/F8.16), DATA_MODEL, ARCHITECTURE, INPUT_FORMAT, STATISTICS, README, CLAUDE.md, ROADMAP, DEVELOPMENT (чек-лист v1.2.0), CHANGELOG |
-| 7 | Независимое ревью | ⬜ | |
+| 7 | Независимое ревью | ✅ | 2 находки (средняя: копия перед миграцией; низкая: привязка без записи блокировала запуск) — обе исправлены |
 | 8 | Релиз v1.2.0 | ⬜ | |
 
 ### План реализации
