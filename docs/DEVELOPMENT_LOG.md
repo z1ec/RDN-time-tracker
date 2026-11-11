@@ -269,3 +269,15 @@
 
 - PR #1 (Dependabot) «Bump SkiaSharp from 3.119.4 to 4.155.0» падал в CI на `restore --locked-mode` (`NU1004`): версия SkiaSharp из `Directory.Packages.props` закрепляет и транзитивную зависимость `Avalonia.Skia` в `WorkTimeTracker.App` и `App.Tests` (`CentralTransitive`), а Dependabot обновил lock-файл только у `tools/IconGen`.
 - Обновлять lock-файлы и мержить не стали: Avalonia 12.1.5 собрана под SkiaSharp 3.119.x, и 4.x сменила бы движок рендера приложения ради утилиты иконки. PR закрыт командой `@dependabot ignore this major version`; в `.github/dependabot.yml` добавлено правило ignore для мажорных обновлений SkiaSharp — переходить на 4.x только вместе с Avalonia.
+
+### Dependabot: обновления после смены конфига · 2026-11-11
+
+Правка `dependabot.yml` запустила внеплановую проверку, и Dependabot открыл три PR:
+
+| PR | Что | Решение |
+|---|---|---|
+| #4 | `Microsoft.NET.Test.Sdk` 18.11.0 → 18.11.1 | смержен (squash), CI ✅ |
+| #2 | Avalonia 12.1.5 → 12.1.6 (6 пакетов) | принят: CI падал на `NU1004` — Dependabot обновил `App.Tests/packages.lock.json` не полностью. Версии из PR перенесены поверх `main`, lock-файлы перегенерированы `dotnet restore --force-evaluate`, коммит запушен в `main`. `Avalonia.Headless.XUnit 12.1.6` по-прежнему требует `xunit.v3.extensibility.core 3.2.2` |
+| #3 | `Microsoft.Extensions.DependencyInjection`, `Microsoft.Data.Sqlite`, `Microsoft.Extensions.TimeProvider.Testing` 10.x → 11.0.0 | отклонён: проект на `net10.0` (LTS), а `Microsoft.Data.Sqlite` 11 переводит нативный слой на SQLitePCLRaw 3.0.5 + пакет `SQLite` 3.53.4 — менять доступ к БД пользователя без выигрыша для приложения незачем. В `dependabot.yml` — ignore мажорных обновлений `Microsoft.Extensions.*` и `Microsoft.Data.Sqlite` |
+
+**Проверка Avalonia 12.1.6:** `scripts/build.sh` — 0 предупреждений; `scripts/test.sh` — Core 272, Data 69, App 82 = 423 теста, 0 упавших; `dotnet format --verify-no-changes` — чисто.

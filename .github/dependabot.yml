@@ -23,6 +23,12 @@ updates:
       # мажорное обновление сменило бы движок рендера приложения — только вместе с Avalonia, вручную
       - dependency-name: "SkiaSharp"
         update-types: ["version-update:semver-major"]
+      # Проект на net10.0 (LTS): библиотеки .NET держим на ветке 10.x (патчи приходят).
+      # 11.x Microsoft.Data.Sqlite меняет нативный слой SQLite (SQLitePCLRaw 3.x) — только вместе с TargetFramework
+      - dependency-name: "Microsoft.Extensions.*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "Microsoft.Data.Sqlite"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: "/"
     schedule:
