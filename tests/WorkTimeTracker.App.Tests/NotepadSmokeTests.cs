@@ -77,8 +77,8 @@ public class NotepadSmokeTests
             Assert.Single(host.Notepad.SelectedRows);
 
             window.KeyPress(Key.Delete, RawInputModifiers.None, PhysicalKey.Delete, null);
-            await UiTestHelpers.WaitForAsync(() => host.Notepad.Undo.IsVisible);
-            Assert.Single(host.Notepad.Rows);
+            // Уведомление об отмене появляется до перезагрузки списка (RemoveAsync) — ждём и то, и другое
+            await UiTestHelpers.WaitForAsync(() => host.Notepad.Undo.IsVisible && host.Notepad.Rows.Count == 1);
             Assert.Equal(2, (await host.Repository.GetAllAsync()).Count); // записи остались
             var toast = window.FindByAutomationName<TextBlock>("Уведомление");
             Assert.Equal("Убрано из блокнота: 1 запись", toast.Text);

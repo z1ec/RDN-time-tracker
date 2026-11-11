@@ -282,3 +282,5 @@
 | #5 | `Microsoft.Extensions.DependencyInjection`, `Microsoft.Data.Sqlite` 10.0.14 → 10.0.15 (открыт после нового правила) | принят тем же способом, что #2: в PR не были обновлены lock-файлы тестов (`NU1004`). SQLitePCLRaw остаётся 2.1.13 |
 
 **Проверка Avalonia 12.1.6 и 10.0.15 (каждое обновление отдельно):** `scripts/build.sh` — 0 предупреждений; `scripts/test.sh` — Core 272, Data 69, App 82 = 423 теста, 0 упавших; `dotnet format --verify-no-changes` — чисто.
+
+**Нестабильный тест на Windows.** CI после 10.0.15 (run 42990761333) упал на Windows-раннере в `HeadlessSmokeTests.Hotkeys_Navigate_Delete_Undo_Search`: `Assert.Single()` увидел 2 строки. Причина — гонка в самом тесте, а не в обновлении: `JournalViewModel.DeleteAsync` вызывает `Undo.Offer` до перезагрузки списка, а тест ждал только `Undo.IsVisible` и сразу считал строки; на медленном раннере с настоящей БД перезагрузка не успевала. Тест теперь ждёт оба условия; такой же шаблон исправлен в `NotepadSmokeTests` (`NotepadViewModel.RemoveAsync` устроен так же). Заодно шаг «Упавшие тесты → аннотации» на Windows сам падал с `UnicodeEncodeError` (cp1252-консоль) — добавлен `PYTHONUTF8=1`.

@@ -96,8 +96,9 @@ public class HeadlessSmokeTests
             await UiTestHelpers.SettleAsync();
             Assert.Single(host.Journal.SelectedRows); // SelectedItems ListBox связан с ViewModel
             window.KeyPress(Key.Delete, RawInputModifiers.None, PhysicalKey.Delete, null);
-            await UiTestHelpers.WaitForAsync(() => host.Journal.Undo.IsVisible);
-            Assert.Single(host.Journal.Rows.OfType<EntryRow>());
+            // Уведомление об отмене появляется до перезагрузки списка (DeleteAsync) — ждём и то, и другое
+            await UiTestHelpers.WaitForAsync(() =>
+                host.Journal.Undo.IsVisible && host.Journal.Rows.OfType<EntryRow>().Count() == 1);
 
             window.KeyPress(Key.Z, RawInputModifiers.Control, PhysicalKey.Z, "z");
             await UiTestHelpers.WaitForAsync(() => host.Journal.Rows.OfType<EntryRow>().Count() == 2);

@@ -81,6 +81,8 @@ jobs:
       - name: Упавшие тесты → аннотации
         if: failure()
         shell: bash
+        env:
+          PYTHONUTF8: "1" # иначе print кириллицы падает в cp1252-консоли Windows
         run: python scripts/annotate_test_failures.py TestResults
 
       - name: Публикация win-x64 single-file
