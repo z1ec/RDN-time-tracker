@@ -9,7 +9,7 @@
     <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,16">
       <StackPanel Spacing="2">
         <TextBlock Classes="h1" Text="Блокнот" />
-        <TextBlock Classes="subtle" Text="Рабочий лист: записи попадают в журнал и статистику, а здесь видна их сумма" />
+        <TextBlock Classes="subtle" Text="Песочница: пишите что угодно — в журнал и статистику попадает только то, что не пересекается с журналом" />
       </StackPanel>
       <ListBox Grid.Column="1" Classes="segmented" VerticalAlignment="Center"
                SelectedIndex="{Binding SelectedTabIndex}"
@@ -45,10 +45,13 @@
             <SelectableTextBlock Text="{Binding SummaryText}" FontSize="15" FontWeight="SemiBold"
                                  Foreground="{DynamicResource AccentTextBrush}"
                                  TextWrapping="Wrap" AutomationProperties.Name="Сумма блокнота" />
+            <!-- Вторая цифра на плашке (F9.4): почему суммы расходятся -->
+            <TextBlock Classes="subtle small" Text="{Binding SummaryHint}" TextWrapping="Wrap"
+                       IsVisible="{Binding HasSummaryHint}" AutomationProperties.Name="Пояснение к сумме" />
           </StackPanel>
           <Button Grid.Column="1" VerticalAlignment="Bottom" Padding="16,8"
                   Command="{Binding ClearAllCommand}"
-                  ToolTip.Tip="Перенести лист в архив. Записи останутся в журнале и статистике"
+                  ToolTip.Tip="Перенести лист в архив. Журнал и статистика не меняются"
                   ToolTip.ShowOnDisabled="True"
                   AutomationProperties.Name="Очистить всё">
             <StackPanel Orientation="Horizontal" Spacing="8">
@@ -76,33 +79,45 @@
             </ListBox.KeyBindings>
             <ListBox.ItemTemplate>
               <DataTemplate x:DataType="vm:NotepadLineRow">
-                <Grid ColumnDefinitions="90,140,32,110,*,Auto,Auto" Background="Transparent"
+                <Grid ColumnDefinitions="90,140,32,100,Auto,*,Auto,Auto" Background="Transparent"
                       DoubleTapped="OnEntryDoubleTapped"
                       AutomationProperties.Name="{Binding AccessibleName}">
                   <Grid.ContextMenu>
                     <ContextMenu>
-                      <MenuItem Header="Изменить" Command="{Binding $parent[ListBox].((vm:NotepadViewModel)DataContext).EditEntryCommand}" CommandParameter="{Binding}" />
+                      <MenuItem Header="Изменить строку" Command="{Binding $parent[ListBox].((vm:NotepadViewModel)DataContext).EditEntryCommand}" CommandParameter="{Binding}" />
                       <MenuItem Header="Убрать выбранные из блокнота (Del)" Command="{Binding $parent[ListBox].((vm:NotepadViewModel)DataContext).RemoveSelectedCommand}" />
                       <MenuItem Header="Убрать из блокнота" Command="{Binding $parent[ListBox].((vm:NotepadViewModel)DataContext).RemoveEntryCommand}" CommandParameter="{Binding}" />
                     </ContextMenu>
                   </Grid.ContextMenu>
-                  <TextBlock Text="{Binding DateText}" Classes="subtle" VerticalAlignment="Center" />
-                  <TextBlock Grid.Column="1" Text="{Binding TimeText}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                  <TextBlock Text="{Binding DateText}" Classes="subtle" VerticalAlignment="Center" Opacity="{Binding ContentOpacity}" />
+                  <TextBlock Grid.Column="1" Text="{Binding TimeText}" FontWeight="SemiBold" VerticalAlignment="Center" Opacity="{Binding ContentOpacity}" />
                   <Border Grid.Column="2" IsVisible="{Binding EndsNextDay}" Background="{DynamicResource AccentSoftBrush}"
                           CornerRadius="6" Padding="5,1" VerticalAlignment="Center" HorizontalAlignment="Left"
                           ToolTip.Tip="Ночная смена: конец на следующий день">
                     <TextBlock Text="+1" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextBrush}" />
                   </Border>
-                  <TextBlock Grid.Column="3" Text="{Binding DurationText}" Classes="subtle" VerticalAlignment="Center" />
-                  <TextBlock Grid.Column="4" Text="{Binding Comment}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
+                  <TextBlock Grid.Column="3" Text="{Binding DurationText}" Classes="subtle" VerticalAlignment="Center" Opacity="{Binding ContentOpacity}" />
+                  <!-- Статус строки (F9.3): метка и подсказка с причиной -->
+                  <Panel Grid.Column="4" VerticalAlignment="Center" Margin="0,0,10,0">
+                    <Border Classes="statusMuted" IsVisible="{Binding IsNotInStatistics}"
+                            ToolTip.Tip="{Binding StatusHint}" AutomationProperties.Name="{Binding StatusLabel}">
+                      <TextBlock Text="{Binding StatusLabel}" />
+                    </Border>
+                    <Border Classes="statusWarning" IsVisible="{Binding IsDifferentInStatistics}"
+                            ToolTip.Tip="{Binding StatusHint}" AutomationProperties.Name="{Binding StatusLabel}">
+                      <TextBlock Text="{Binding StatusLabel}" />
+                    </Border>
+                  </Panel>
+                  <TextBlock Grid.Column="5" Text="{Binding Comment}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
+                             Opacity="{Binding ContentOpacity}"
                              ToolTip.Tip="{Binding Comment}" ToolTip.IsEnabled="{Binding HasComment}" />
-                  <Button Grid.Column="5" Classes="icon" ToolTip.Tip="Изменить запись (двойной клик)"
+                  <Button Grid.Column="6" Classes="icon" ToolTip.Tip="Изменить строку (двойной клик)"
                           Command="{Binding $parent[ListBox].((vm:NotepadViewModel)DataContext).EditEntryCommand}" CommandParameter="{Binding}"
                           AutomationProperties.Name="Изменить запись">
                     <PathIcon Data="{StaticResource IconEdit}" />
                   </Button>
-                  <Button Grid.Column="6" Classes="icon"
-                          ToolTip.Tip="Убрать из блокнота (запись останется в журнале и статистике)"
+                  <Button Grid.Column="7" Classes="icon"
+                          ToolTip.Tip="Убрать из блокнота (журнал и статистика не меняются)"
                           Command="{Binding $parent[ListBox].((vm:NotepadViewModel)DataContext).RemoveEntryCommand}" CommandParameter="{Binding}"
                           AutomationProperties.Name="Убрать из блокнота">
                     <PathIcon Data="{StaticResource IconDismiss}" />
@@ -154,7 +169,7 @@
                       </Grid>
                     </Button>
                     <Button Grid.Column="1" Classes="icon" VerticalAlignment="Center" Margin="0,0,4,0"
-                            ToolTip.Tip="Удалить из архива (записи останутся в журнале и статистике)"
+                            ToolTip.Tip="Удалить из архива (журнал и статистика не меняются)"
                             Command="{Binding $parent[ItemsControl].((vm:NotepadViewModel)DataContext).DeleteSheetCommand}" CommandParameter="{Binding}"
                             AutomationProperties.Name="Удалить из архива">
                       <PathIcon Data="{StaticResource IconDelete}" />
@@ -164,15 +179,24 @@
                   <ItemsControl ItemsSource="{Binding Entries}" IsVisible="{Binding IsExpanded}" Margin="40,4,12,8">
                     <ItemsControl.ItemTemplate>
                       <DataTemplate x:DataType="vm:NotepadLineRow">
-                        <Grid ColumnDefinitions="90,140,32,110,*" Margin="0,5" AutomationProperties.Name="{Binding AccessibleName}">
-                          <TextBlock Text="{Binding DateText}" Classes="subtle" />
-                          <TextBlock Grid.Column="1" Text="{Binding TimeText}" FontWeight="SemiBold" />
+                        <Grid ColumnDefinitions="90,140,32,100,Auto,*" Margin="0,5" AutomationProperties.Name="{Binding AccessibleName}">
+                          <TextBlock Text="{Binding DateText}" Classes="subtle" VerticalAlignment="Center" Opacity="{Binding ContentOpacity}" />
+                          <TextBlock Grid.Column="1" Text="{Binding TimeText}" FontWeight="SemiBold" VerticalAlignment="Center" Opacity="{Binding ContentOpacity}" />
                           <Border Grid.Column="2" IsVisible="{Binding EndsNextDay}" Background="{DynamicResource AccentSoftBrush}"
                                   CornerRadius="6" Padding="5,1" VerticalAlignment="Center" HorizontalAlignment="Left">
                             <TextBlock Text="+1" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextBrush}" />
                           </Border>
-                          <TextBlock Grid.Column="3" Text="{Binding DurationText}" Classes="subtle" />
-                          <TextBlock Grid.Column="4" Text="{Binding Comment}" TextTrimming="CharacterEllipsis"
+                          <TextBlock Grid.Column="3" Text="{Binding DurationText}" Classes="subtle" VerticalAlignment="Center" Opacity="{Binding ContentOpacity}" />
+                          <Panel Grid.Column="4" VerticalAlignment="Center" Margin="0,0,10,0">
+                            <Border Classes="statusMuted" IsVisible="{Binding IsNotInStatistics}" ToolTip.Tip="{Binding StatusHint}">
+                              <TextBlock Text="{Binding StatusLabel}" />
+                            </Border>
+                            <Border Classes="statusWarning" IsVisible="{Binding IsDifferentInStatistics}" ToolTip.Tip="{Binding StatusHint}">
+                              <TextBlock Text="{Binding StatusLabel}" />
+                            </Border>
+                          </Panel>
+                          <TextBlock Grid.Column="5" Text="{Binding Comment}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
+                                     Opacity="{Binding ContentOpacity}"
                                      ToolTip.Tip="{Binding Comment}" ToolTip.IsEnabled="{Binding HasComment}" />
                         </Grid>
                       </DataTemplate>

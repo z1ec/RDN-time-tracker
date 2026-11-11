@@ -15,6 +15,11 @@
       <SolidColorBrush x:Key="NegativeBrush" Color="#C2410C" />
       <SolidColorBrush x:Key="ErrorBrush" Color="#DC2626" />
       <SolidColorBrush x:Key="SuccessBrush" Color="#047857" />
+      <!-- Метки статусов строк блокнота (F9.3): «не в статистике» — нейтральная, «в статистике: …» — предупреждение -->
+      <SolidColorBrush x:Key="StatusMutedBackgroundBrush" Color="#EEF0F4" />
+      <SolidColorBrush x:Key="StatusMutedTextBrush" Color="#4B5563" />
+      <SolidColorBrush x:Key="StatusWarningBackgroundBrush" Color="#FEF3E2" />
+      <SolidColorBrush x:Key="StatusWarningTextBrush" Color="#B45309" />
       <SolidColorBrush x:Key="ToastBackgroundBrush" Color="#1F2937" />
       <SolidColorBrush x:Key="ToastForegroundBrush" Color="#F9FAFB" />
       <SolidColorBrush x:Key="ToastAccentBrush" Color="#A5B4FC" />
@@ -50,6 +55,10 @@
       <SolidColorBrush x:Key="NegativeBrush" Color="#FB923C" />
       <SolidColorBrush x:Key="ErrorBrush" Color="#F87171" />
       <SolidColorBrush x:Key="SuccessBrush" Color="#34D399" />
+      <SolidColorBrush x:Key="StatusMutedBackgroundBrush" Color="#2B2E38" />
+      <SolidColorBrush x:Key="StatusMutedTextBrush" Color="#C3C7D1" />
+      <SolidColorBrush x:Key="StatusWarningBackgroundBrush" Color="#3B2A14" />
+      <SolidColorBrush x:Key="StatusWarningTextBrush" Color="#FBBF24" />
       <SolidColorBrush x:Key="ToastBackgroundBrush" Color="#E5E7EB" />
       <SolidColorBrush x:Key="ToastForegroundBrush" Color="#111827" />
       <SolidColorBrush x:Key="ToastAccentBrush" Color="#4338CA" />

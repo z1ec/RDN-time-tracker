@@ -1,3 +1,4 @@
+using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
@@ -8,7 +9,7 @@ using WorkTimeTracker.App.Views;
 
 namespace WorkTimeTracker.App.Tests;
 
-/// <summary>Headless UI smoke вкладки «Блокнот» (F8): настоящее окно, клавиатура, привязки.</summary>
+/// <summary>Headless UI smoke вкладки «Блокнот» (F8, F9): настоящее окно, клавиатура, привязки.</summary>
 public class NotepadSmokeTests
 {
     private static async Task<MainWindow> OpenNotepadAsync(TestHost host)
@@ -106,6 +107,52 @@ public class NotepadSmokeTests
             window.FindByAutomationName<ListBox>("Записи").Focus();
             window.KeyPress(Key.Z, RawInputModifiers.Control, PhysicalKey.Z, "z");
             await UiTestHelpers.WaitForAsync(() => host.Notepad.Rows.Count == 2); // отмена в «Журнале» вернула запись и в блокнот
+        }
+        finally
+        {
+            window.Close();
+        }
+    }
+
+    /// <summary>F9.8, S13 в настоящем окне: ввёл, убрал ✕, ввёл снова — строка добавлена с меткой «не в статистике».</summary>
+    [AvaloniaFact]
+    public async Task TypeRemoveTypeAgain_SecondLineShownNotInStatistics()
+    {
+        using var host = await TestHost.StartAsync();
+        var window = await OpenNotepadAsync(host);
+        try
+        {
+            var input = window.FindByAutomationName<TextBox>("Быстрый ввод");
+            await UiTestHelpers.WaitForAsync(() => input.IsFocused);
+            window.KeyTextInput("1100 1300");
+            window.KeyPress(Key.Enter, RawInputModifiers.None, PhysicalKey.Enter, null);
+            await UiTestHelpers.WaitForAsync(() => host.Notepad.Rows.Count == 1);
+            var list = window.FindByAutomationName<ListBox>("Записи блокнота");
+            await UiTestHelpers.WaitForAsync(() => list.GetVisualDescendants().OfType<Button>().Any(b => AutomationProperties.GetName(b) == "Убрать из блокнота"));
+            Assert.DoesNotContain(list.GetVisualDescendants().OfType<TextBlock>(), t => t.Text == "не в статистике" && t.IsEffectivelyVisible);
+
+            var remove = list.GetVisualDescendants().OfType<Button>().First(b => AutomationProperties.GetName(b) == "Убрать из блокнота");
+            remove.Command!.Execute(remove.CommandParameter); // первая операция: ✕
+            await UiTestHelpers.WaitForAsync(() => host.Notepad.Rows.Count == 0 && host.Notepad.Undo.IsVisible);
+            Assert.Equal("Убрано из блокнота: 1 запись", window.FindByAutomationName<TextBlock>("Уведомление").Text);
+
+            input.Focus();
+            window.KeyTextInput("1100 1300");
+            await UiTestHelpers.SettleAsync();
+            Assert.False(host.Notepad.Input.PreviewIsError); // предпросмотр не ругается на пересечение
+            window.KeyPress(Key.Enter, RawInputModifiers.None, PhysicalKey.Enter, null); // вторая операция: снова ввод
+            await UiTestHelpers.WaitForAsync(() => host.Notepad.Rows.Count == 1);
+
+            Assert.Equal("", input.Text);
+            await UiTestHelpers.WaitForAsync(() => list.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Text == "не в статистике" && t.IsEffectivelyVisible));
+            var label = list.GetVisualDescendants().OfType<Border>().First(b => AutomationProperties.GetName(b) == "не в статистике" && b.IsEffectivelyVisible);
+            Assert.Equal("Пересекается с записью 10.11 11:00–13:00 — в статистику не записано", ToolTip.GetTip(label));
+            Assert.Contains(window.GetVisualDescendants().OfType<TextBlock>(), t => t.Text == "Добавлено: 1 запись · не в статистике: 1 (пересечение с журналом)");
+            var summary = window.FindByAutomationName<SelectableTextBlock>("Сумма блокнота");
+            Assert.StartsWith("В блокноте: 2 ч 00 мин · в статистике: 0 ч 00 мин", summary.Text, StringComparison.Ordinal);
+            Assert.True(window.FindByAutomationName<TextBlock>("Пояснение к сумме").IsEffectivelyVisible);
+            Assert.Single(await host.Repository.GetAllAsync()); // в «Журнале» одна запись
+            Assert.NotNull(window.CaptureRenderedFrame());
         }
         finally
         {
@@ -225,7 +272,7 @@ public class NotepadSmokeTests
             await host.Notepad.Input.AddCommand.ExecuteAsync(null);
             await UiTestHelpers.SettleAsync();
             var remove = window.FindByAutomationName<Button>("Убрать из блокнота");
-            Assert.Equal("Убрать из блокнота (запись останется в журнале и статистике)", ToolTip.GetTip(remove));
+            Assert.Equal("Убрать из блокнота (журнал и статистика не меняются)", ToolTip.GetTip(remove));
         }
         finally
         {

@@ -11,6 +11,30 @@
     <Setter Property="Padding" Value="16" />
   </Style>
 
+  <!-- Метки статусов строк блокнота (F9.3) -->
+  <Style Selector="Border.statusMuted, Border.statusWarning">
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="Padding" Value="6,1" />
+    <Setter Property="HorizontalAlignment" Value="Left" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Border.statusMuted">
+    <Setter Property="Background" Value="{DynamicResource StatusMutedBackgroundBrush}" />
+  </Style>
+  <Style Selector="Border.statusWarning">
+    <Setter Property="Background" Value="{DynamicResource StatusWarningBackgroundBrush}" />
+  </Style>
+  <Style Selector="Border.statusMuted > TextBlock, Border.statusWarning > TextBlock">
+    <Setter Property="FontSize" Value="11" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style Selector="Border.statusMuted > TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource StatusMutedTextBrush}" />
+  </Style>
+  <Style Selector="Border.statusWarning > TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource StatusWarningTextBrush}" />
+  </Style>
+
   <Style Selector=":is(TextBlock).h1">
     <Setter Property="FontSize" Value="24" />
     <Setter Property="FontWeight" Value="SemiBold" />
