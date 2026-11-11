@@ -8,12 +8,13 @@ using static WorkTimeTracker.App.Tests.JournalViewModelTests;
 namespace WorkTimeTracker.App.Tests;
 
 /// <summary>
-/// Вкладка «Блокнот» (F8.1–F8.20): сценарии приёмки S1–S12 на настоящих ViewModel и БД.
+/// Вкладка «Блокнот» (F8.1–F8.20): сценарии приёмки S1–S12 на настоящих ViewModel и БД
+/// (S7 переписан в v1.2.0; сценарии песочницы S13–S26 — <see cref="NotepadSandboxTests"/>).
 /// «Сегодня» — вторник 10.11.2026, 14:37.
 /// </summary>
 public class NotepadViewModelTests
 {
-    private static async Task AddAsync(NotepadViewModel vm, string text)
+    internal static async Task AddAsync(NotepadViewModel vm, string text)
     {
         vm.Input.QuickInput = text;
         Assert.True(vm.Input.AddCommand.CanExecute(null), vm.Input.PreviewText);
@@ -21,7 +22,7 @@ public class NotepadViewModelTests
     }
 
     /// <summary>Отпечаток статистики за месяц: все показатели и подписи. Меняется при любом изменении записей.</summary>
-    private static async Task<string> StatsAsync(TestHost host)
+    internal static async Task<string> StatsAsync(TestHost host)
     {
         host.Statistics.SelectedKindIndex = 2;
         await host.Statistics.LoadAsync();
@@ -30,9 +31,9 @@ public class NotepadViewModelTests
         return string.Join(" | ", host.Statistics.Kpis.Select(k => $"{k.Title}={k.Value} ({k.Caption})"));
     }
 
-    private static List<EntryRow> JournalEntries(TestHost host) => [.. host.Journal.Rows.OfType<EntryRow>()];
+    internal static List<EntryRow> JournalEntries(TestHost host) => [.. host.Journal.Rows.OfType<EntryRow>()];
 
-    private static async Task<string> EntriesDumpAsync(TestHost host)
+    internal static async Task<string> EntriesDumpAsync(TestHost host)
     {
         var rows = await host.Services.GetRequiredService<SqliteConnectionFactory>().RunAsync(c => c.Query<string>(
             "SELECT id || '|' || work_date || '|' || start_min || '|' || end_min || '|' || comment || '|' || updated_at || '|' || coalesce(deleted_at, '') FROM entries ORDER BY id").ToList());
@@ -680,23 +681,6 @@ public class NotepadViewModelTests
         var current = (await host.NotepadService.GetCurrentAsync())!;
         Assert.Equal(("Заказ", 1), (current.Sheet.Title, current.Lines.Count));
         Assert.Equal("Заказ", vm.Title);
-    }
-
-    // ---------- S13: исходный баг ----------
-
-    [AvaloniaFact]
-    public async Task S13_AddRemoveAddAgain_SecondLineAccepted()
-    {
-        using var host = await TestHost.StartAsync();
-        var vm = host.Notepad;
-        await AddAsync(vm, "1100 1300");
-        await vm.RemoveEntryCommand.ExecuteAsync(vm.Rows[0]);
-
-        vm.Input.QuickInput = "1100 1300";
-        await vm.Input.AddCommand.ExecuteAsync(null);
-
-        Assert.False(vm.Input.PreviewIsError, vm.Input.PreviewText);
-        Assert.Single(vm.Rows);
     }
 
     // ---------- Отмена по активной вкладке (F8.20) ----------
