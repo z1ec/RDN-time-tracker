@@ -190,4 +190,46 @@ public class NotepadSmokeTests
             window.Close();
         }
     }
+
+    [AvaloniaFact]
+    public async Task Title_NotLost_WhenWindowClosedFromTitleField()
+    {
+        using var host = await TestHost.StartAsync();
+        var window = await OpenNotepadAsync(host);
+        var closed = false;
+        window.Closed += (_, _) => closed = true;
+        window.FindByAutomationName<TextBox>("Название листа").Focus();
+        window.KeyTextInput("Набрано и сразу Alt+F4");
+
+        window.Close();
+
+        await UiTestHelpers.WaitForAsync(() => closed); // окно закрывается только после записи названия в БД
+        Assert.True(host.Notepad.TitleSaveTask.IsCompletedSuccessfully);
+        Assert.Equal("Набрано и сразу Alt+F4", (await host.NotepadService.GetCurrentAsync())!.Sheet.Title);
+    }
+
+    [AvaloniaFact]
+    public async Task JournalDeleteTooltip_MentionsNotepad()
+    {
+        using var host = await TestHost.StartAsync();
+        host.Journal.Input.QuickInput = "0900 1000";
+        await host.Journal.Input.AddCommand.ExecuteAsync(null);
+        var window = await UiTestHelpers.ShowMainWindowAsync(host);
+        try
+        {
+            var delete = window.FindByAutomationName<Button>("Удалить запись");
+            Assert.Equal("Удалить запись (в том числе из блокнота)", ToolTip.GetTip(delete));
+            window.KeyPress(Key.D2, RawInputModifiers.Control, PhysicalKey.Digit2, "2");
+            await UiTestHelpers.SettleAsync();
+            host.Notepad.Input.QuickInput = "1100 1200";
+            await host.Notepad.Input.AddCommand.ExecuteAsync(null);
+            await UiTestHelpers.SettleAsync();
+            var remove = window.FindByAutomationName<Button>("Убрать из блокнота");
+            Assert.Equal("Убрать из блокнота (запись останется в журнале и статистике)", ToolTip.GetTip(remove));
+        }
+        finally
+        {
+            window.Close();
+        }
+    }
 }

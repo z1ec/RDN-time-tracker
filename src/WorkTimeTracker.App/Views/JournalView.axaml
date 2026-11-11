@@ -78,7 +78,7 @@
                         AutomationProperties.Name="Изменить запись">
                   <PathIcon Data="{StaticResource IconEdit}" />
                 </Button>
-                <Button Grid.Column="5" Classes="icon" ToolTip.Tip="Удалить запись (в том числе из блокнота) — Del"
+                <Button Grid.Column="5" Classes="icon" ToolTip.Tip="Удалить запись (в том числе из блокнота)"
                         Command="{Binding $parent[ListBox].((vm:JournalViewModel)DataContext).DeleteEntryCommand}" CommandParameter="{Binding}"
                         AutomationProperties.Name="Удалить запись">
                   <PathIcon Data="{StaticResource IconDelete}" />

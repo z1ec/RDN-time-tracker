@@ -21,7 +21,7 @@ public partial class NotepadView : UserControl
     /// Название сохраняется при уходе фокуса из поля. Если вкладку закрыли, не выходя из поля
     /// (например, Ctrl+3), набранное название не должно потеряться.
     /// </summary>
-    private void CommitTitle()
+    public void CommitTitle()
     {
         if (ViewModel is { } vm && (TitleBox.Text ?? "") != vm.Title)
         {

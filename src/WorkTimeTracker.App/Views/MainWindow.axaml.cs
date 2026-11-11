@@ -14,6 +14,41 @@ public partial class MainWindow : Window
         AddHandler(KeyDownEvent, OnPreviewKeyDown, RoutingStrategies.Tunnel);
     }
 
+    private bool _titleFlushed;
+
+    /// <summary>
+    /// Закрытие окна прямо из поля названия листа блокнота: название фиксируется, и окно закрывается
+    /// только после того, как оно записано в БД (F8.9).
+    /// </summary>
+    protected override async void OnClosing(WindowClosingEventArgs e)
+    {
+        base.OnClosing(e);
+        if (_titleFlushed || e.Cancel || ViewModel is not { } vm)
+        {
+            return;
+        }
+
+        this.GetVisualDescendants().OfType<NotepadView>().FirstOrDefault()?.CommitTitle();
+        var save = vm.Notepad.TitleSaveTask;
+        if (save.IsCompleted)
+        {
+            return;
+        }
+
+        e.Cancel = true;
+        try
+        {
+            await save;
+        }
+        catch (Exception ex)
+        {
+            Serilog.Log.Error(ex, "Не удалось сохранить название листа при закрытии");
+        }
+
+        _titleFlushed = true;
+        Close();
+    }
+
     private MainWindowViewModel? ViewModel => DataContext as MainWindowViewModel;
 
     /// <summary>Горячие клавиши, которым нужен доступ к визуальному дереву (F7.6): Ctrl+F, Ctrl+Z.</summary>

@@ -648,6 +648,39 @@ public class NotepadViewModelTests
         Assert.Equal(100, vm.Title.Length);
     }
 
+    [AvaloniaFact]
+    public async Task Title_ThenImmediateClear_TitleStaysWithArchivedSheet()
+    {
+        using var host = await TestHost.StartAsync();
+        var vm = host.Notepad;
+        await AddAsync(vm, "0900 1000");
+
+        vm.Title = "Заказ"; // как при уходе фокуса из поля по нажатию «Очистить всё»: сохранение не дожидаемся
+        await vm.ClearAllCommand.ExecuteAsync(null);
+
+        Assert.Equal("Заказ", Assert.Single(vm.ArchiveSheets).Title);
+        Assert.Null(await host.NotepadService.GetCurrentAsync()); // название не досталось новому листу
+        Assert.True(vm.Undo.UndoCommand.CanExecute(null));
+        await vm.Undo.UndoCommand.ExecuteAsync(null);
+        Assert.Equal("Заказ", vm.Title);
+        Assert.Single(vm.Rows);
+    }
+
+    [AvaloniaFact]
+    public async Task Title_ThenImmediateAdd_OneSheetWithTitleAndEntry()
+    {
+        using var host = await TestHost.StartAsync();
+        var vm = host.Notepad;
+
+        vm.Title = "Первое";
+        vm.Title = "Заказ";
+        await AddAsync(vm, "0900 1000");
+
+        var current = (await host.NotepadService.GetCurrentAsync())!;
+        Assert.Equal(("Заказ", 1), (current.Sheet.Title, current.Entries.Count));
+        Assert.Equal("Заказ", vm.Title);
+    }
+
     // ---------- Отмена по активной вкладке (F8.20) ----------
 
     [AvaloniaFact]

@@ -85,7 +85,21 @@ public sealed partial class NotepadViewModel : ObservableObject
         _interaction = interaction;
         _time = time;
 
-        Input = new EntryInputViewModel(entries, time, (text, date) => notepad.AddFromTextAsync(text, date), draft => notepad.AddAsync(draft), OnAddedAsync);
+        TitleSaveTask = Task.CompletedTask;
+        Input = new EntryInputViewModel(
+            entries,
+            time,
+            async (text, date) =>
+            {
+                await TitleSaveTask;
+                return await notepad.AddFromTextAsync(text, date);
+            },
+            async draft =>
+            {
+                await TitleSaveTask;
+                return await notepad.AddAsync(draft);
+            },
+            OnAddedAsync);
         Undo = new UndoToastViewModel(time);
         Title = "";
         SummaryText = NotepadFormat.Summary(null, time.LocalTimeZone);
@@ -93,7 +107,6 @@ public sealed partial class NotepadViewModel : ObservableObject
         ArchiveTabText = "Архив (0)";
         IsEmpty = true;
         IsArchiveEmpty = true;
-        TitleSaveTask = Task.CompletedTask;
 
         // Записи изменили в «Журнале» (правка, удаление, отмена удаления) — плашка и архив обновляются сразу (F8.6, F8.12).
         _events.EntriesChanged += (sender, args) =>
@@ -145,19 +158,24 @@ public sealed partial class NotepadViewModel : ObservableObject
 
     public int MaxTitleLength => NotepadSheet.MaxTitleLength;
 
-    /// <summary>Последнее сохранение названия (для тестов и аккуратного завершения).</summary>
+    /// <summary>
+    /// Последнее сохранение названия. Операции блокнота сначала дожидаются его: иначе, например, «Очистить всё»,
+    /// нажатое прямо из поля названия, могло бы обогнать сохранение — и название досталось бы новому листу.
+    /// Главное окно дожидается его перед закрытием.
+    /// </summary>
     public Task TitleSaveTask { get; private set; }
 
     partial void OnTitleChanged(string value)
     {
         if (_active && !_settingTitle)
         {
-            TitleSaveTask = SaveTitleAsync(value);
+            TitleSaveTask = SaveTitleAsync(TitleSaveTask, value);
         }
     }
 
-    private async Task SaveTitleAsync(string value)
+    private async Task SaveTitleAsync(Task previous, string value)
     {
+        await previous; // сохранения названия идут строго по очереди
         await _notepad.SetTitleAsync(value);
         Undo.Invalidate();
         await LoadAsync();
@@ -271,6 +289,7 @@ public sealed partial class NotepadViewModel : ObservableObject
             return;
         }
 
+        await TitleSaveTask;
         var n = await _notepad.RemoveAsync(ids);
         StatusText = "";
         Undo.Offer($"Убрано из блокнота: {n} {RuFormat.Plural(n, "запись", "записи", "записей")}", async () =>
@@ -288,6 +307,7 @@ public sealed partial class NotepadViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(CanClear))]
     private async Task ClearAllAsync()
     {
+        await TitleSaveTask;
         if (await _notepad.ClearAsync() is not { } sheetId)
         {
             return;

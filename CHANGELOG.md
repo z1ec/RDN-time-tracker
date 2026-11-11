@@ -5,6 +5,8 @@
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-11-11
+
 ### Added
 
 - **Вкладка «Блокнот» (F8)** — рабочий лист поверх общих записей. Запись, добавленная в блокноте, — обычная запись: она сразу видна в «Журнале» и «Статистике», а блокнот показывает сумму того, что добавлено через него: «В блокноте: 7 ч 30 мин · 2 записи · ведётся с 10 нояб., 09:12».
@@ -48,5 +50,6 @@
 - Скрипты `scripts/build.sh`, `test.sh`, `run.sh`, `publish-win.sh`.
 - Инфраструктура проекта: лицензия MIT, `.gitignore`, `.gitattributes`, `.editorconfig`, журнал разработки и чек-лист прогресса.
 
-[Unreleased]: https://github.com/z1ec/RDN-time-tracker/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/z1ec/RDN-time-tracker/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/z1ec/RDN-time-tracker/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/z1ec/RDN-time-tracker/releases/tag/v1.0.0
