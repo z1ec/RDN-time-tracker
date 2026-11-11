@@ -3,19 +3,30 @@ using WorkTimeTracker.Core.Model;
 namespace WorkTimeTracker.Core.Abstractions;
 
 /// <summary>
-/// Хранилище блокнота (F8, таблицы <c>notepad_sheets</c> и <c>notepad_items</c>).
-/// Ни один метод не изменяет и не удаляет существующие строки <c>entries</c>;
-/// <see cref="AddEntriesAsync"/> только добавляет новые. Каждый метод изменения — одна транзакция.
+/// Хранилище блокнота (F8, F9; таблицы <c>notepad_sheets</c> и <c>notepad_lines</c>).
+/// Строки <c>entries</c> здесь только создаются и изменяются вместе со строкой блокнота (<see cref="AddLinesAsync"/>,
+/// <see cref="UpdateLineAsync"/>) — и никогда не удаляются. ✕, очистка и архив записей не касаются.
+/// Каждый метод изменения — одна транзакция.
 /// </summary>
 public interface INotepadRepository
 {
     /// <summary>
-    /// Создаёт записи и привязывает их к текущему листу одной транзакцией (F8.4).
+    /// Добавляет строки в текущий лист по порядку одной транзакцией (F9.2). Для строк с
+    /// <see cref="NotepadLineDraft.CreateEntry"/> в той же транзакции создаётся запись журнала и строка связывается с ней.
     /// Текущий лист создаётся, если его ещё нет.
     /// </summary>
-    Task<IReadOnlyList<WorkEntry>> AddEntriesAsync(IReadOnlyList<EntryDraft> drafts, CancellationToken ct = default);
+    Task<IReadOnlyList<NotepadLine>> AddLinesAsync(IReadOnlyList<NotepadLineDraft> lines, CancellationToken ct = default);
 
-    /// <summary>Текущий лист с видимыми записями или <c>null</c>, если он ещё не создан.</summary>
+    /// <summary>Видимая строка текущего листа или <c>null</c> (нет такой, убрана, в архиве, её запись удалена).</summary>
+    Task<NotepadLine?> GetLineAsync(long lineId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Меняет видимую строку текущего листа одной транзакцией (F9.5); <paramref name="mode"/> — что сделать с записью базы.
+    /// Возвращает строку после изменения или <c>null</c>, если строки нет.
+    /// </summary>
+    Task<NotepadLine?> UpdateLineAsync(long lineId, EntryDraft values, NotepadLineUpdate mode, CancellationToken ct = default);
+
+    /// <summary>Текущий лист с видимыми строками или <c>null</c>, если он ещё не создан.</summary>
     Task<NotepadSheetView?> GetCurrentAsync(CancellationToken ct = default);
 
     /// <summary>Архив: очищенные и не удалённые листы, новые сверху (F8.15).</summary>
@@ -24,11 +35,11 @@ public interface INotepadRepository
     /// <summary>Задаёт название текущего листа. Если листа нет, он создаётся — но только для непустого названия.</summary>
     Task SetTitleAsync(string title, CancellationToken ct = default);
 
-    /// <summary>Убирает записи из текущего листа (✕, F8.11); сами записи не трогает. Возвращает число убранных.</summary>
-    Task<int> RemoveItemsAsync(IReadOnlyCollection<long> entryIds, CancellationToken ct = default);
+    /// <summary>Убирает строки текущего листа (✕, F9.8); записи журнала не трогает. Возвращает число убранных.</summary>
+    Task<int> RemoveLinesAsync(IReadOnlyCollection<long> lineIds, CancellationToken ct = default);
 
-    /// <summary>Отмена <see cref="RemoveItemsAsync"/>. Возвращает число возвращённых привязок.</summary>
-    Task<int> RestoreItemsAsync(IReadOnlyCollection<long> entryIds, CancellationToken ct = default);
+    /// <summary>Отмена <see cref="RemoveLinesAsync"/>. Возвращает число возвращённых строк.</summary>
+    Task<int> RestoreLinesAsync(IReadOnlyCollection<long> lineIds, CancellationToken ct = default);
 
     /// <summary>«Очистить всё» (F8.14): текущий лист уходит в архив. Возвращает его id или <c>null</c>, если листа нет.</summary>
     Task<long?> ClearCurrentAsync(CancellationToken ct = default);
@@ -42,6 +53,6 @@ public interface INotepadRepository
     /// <summary>Отмена <see cref="DeleteSheetAsync"/>.</summary>
     Task<bool> RestoreSheetAsync(long sheetId, CancellationToken ct = default);
 
-    /// <summary>Физически удаляет привязки, убранные раньше порога, и листы, удалённые из архива раньше порога (F8.18).</summary>
+    /// <summary>Физически удаляет строки, убранные раньше порога, и листы, удалённые из архива раньше порога (F8.18).</summary>
     Task<NotepadPurgeResult> PurgeAsync(DateTimeOffset olderThanUtc, CancellationToken ct = default);
 }

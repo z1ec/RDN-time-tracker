@@ -42,7 +42,7 @@ public partial class NotepadView : UserControl
 
     private void OnEntryDoubleTapped(object? sender, TappedEventArgs e)
     {
-        if (sender is Control { DataContext: EntryRow row } && ViewModel is { } vm)
+        if (sender is Control { DataContext: NotepadLineRow row } && ViewModel is { } vm)
         {
             vm.EditEntryCommand.Execute(row);
         }

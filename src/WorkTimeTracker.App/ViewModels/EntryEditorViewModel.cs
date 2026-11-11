@@ -7,17 +7,33 @@ using WorkTimeTracker.Core.Validation;
 namespace WorkTimeTracker.App.ViewModels;
 
 /// <summary>
-/// Диалог редактирования записи (F6.3). Валидация — та же, что при добавлении
-/// (<see cref="EntryService.BuildDraft"/>), пересечения — без учёта самой записи.
+/// Диалог редактирования записи (F6.3) и строки блокнота (F9.5). Валидация — та же, что при добавлении
+/// (<see cref="EntryService.BuildDraft"/>); как сохранять, задаёт владелец: «Журнал» — изменить запись
+/// (пересечения без учёта самой записи — ошибка), «Блокнот» — изменить строку по правилам F9.5.
 /// </summary>
 public sealed partial class EntryEditorViewModel : ObservableObject
 {
     private readonly EntryService _entries;
+    private readonly Func<EntryDraft, Task<IReadOnlyList<string>>> _save;
 
+    /// <summary>Правка записи журнала (F6.3).</summary>
     public EntryEditorViewModel(WorkEntry entry, EntryService entries)
+        : this(entry, entries, async draft => (await entries.UpdateAsync(entry.Id, draft)).Errors, "Изменить запись", "")
+    {
+    }
+
+    /// <param name="entry">Исходные значения.</param>
+    /// <param name="entries">Сервис записей: разбор, правила, «сегодня».</param>
+    /// <param name="save">Сохранение; возвращает ошибки (пусто — успех).</param>
+    /// <param name="title">Заголовок диалога.</param>
+    /// <param name="hint">Пояснение под заголовком (пусто — нет).</param>
+    public EntryEditorViewModel(WorkEntry entry, EntryService entries, Func<EntryDraft, Task<IReadOnlyList<string>>> save, string title, string hint)
     {
         _entries = entries;
+        _save = save;
         Entry = entry;
+        Title = title;
+        Hint = hint;
         DurationText = "";
         Comment = entry.Comment;
         Date = entry.Date.ToDateTime(TimeOnly.MinValue);
@@ -27,6 +43,12 @@ public sealed partial class EntryEditorViewModel : ObservableObject
     }
 
     public WorkEntry Entry { get; }
+
+    public string Title { get; }
+
+    public string Hint { get; }
+
+    public bool HasHint => Hint.Length > 0;
 
     public DateTimeOffset MaxDate => _entries.Today.ToDateTime(TimeOnly.MinValue);
 
@@ -75,10 +97,10 @@ public sealed partial class EntryEditorViewModel : ObservableObject
             return false;
         }
 
-        var result = await _entries.UpdateAsync(Entry.Id, draft.Value!);
-        if (!result.IsSuccess)
+        var errors = await _save(draft.Value!);
+        if (errors.Count > 0)
         {
-            Error = string.Join(Environment.NewLine, result.Errors);
+            Error = string.Join(Environment.NewLine, errors);
             return false;
         }
 

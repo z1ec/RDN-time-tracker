@@ -193,7 +193,8 @@ public class NotepadViewModelTests
 
         Assert.Equal("09:00 – 18:00", vm.Rows[0].TimeText);
         Assert.StartsWith("В блокноте: 9 ч 00 мин · 1 запись", vm.SummaryText, StringComparison.Ordinal);
-        Assert.Equal("Запись изменена", vm.StatusText);
+        Assert.Equal("Строка изменена · в статистике", vm.StatusText);
+        Assert.True(vm.Rows[0].IsInStatistics);
         await WaitAsync(() => JournalEntries(host).Single().TimeText == "09:00 – 18:00");
         Assert.StartsWith("Сегодня: 9 ч 00 мин", host.Journal.SummaryText, StringComparison.Ordinal);
         Assert.Contains("Итого=9:00", await StatsAsync(host), StringComparison.Ordinal);
@@ -379,27 +380,31 @@ public class NotepadViewModelTests
         Assert.Single(await host.Repository.GetAllAsync());
     }
 
-    // ---------- S7 ----------
+    // ---------- S7 (переписан в v1.2.0: F9.2) ----------
 
     [AvaloniaFact]
-    public async Task S7_OverlapWithJournalEntry_NothingAddedAnywhere()
+    public async Task S7_OverlapWithJournalEntry_LineOnlyInNotepad()
     {
         using var host = await TestHost.StartAsync();
         host.Journal.Input.QuickInput = "0900 1200 из журнала";
         await host.Journal.Input.AddCommand.ExecuteAsync(null);
         var vm = host.Notepad;
+        var stats = await StatsAsync(host);
+        var dump = await EntriesDumpAsync(host);
 
-        vm.Input.QuickInput = "1000 1100";
-        Assert.True(vm.Input.AddCommand.CanExecute(null)); // разбор успешен, пересечение проверяется при добавлении
-        await vm.Input.AddCommand.ExecuteAsync(null);
+        await AddAsync(vm, "1000 1100");
 
-        Assert.Equal("✗ Пересекается с записью 10.11 09:00–12:00 «из журнала»", vm.Input.PreviewText);
-        Assert.True(vm.Input.PreviewIsError);
-        Assert.Equal("1000 1100", vm.Input.QuickInput);
-        Assert.True(vm.IsEmpty);
-        Assert.Equal("В блокноте: 0 ч 00 мин · 0 записей", vm.SummaryText);
-        Assert.Single(await host.Repository.GetAllAsync());
-        Assert.Null(await host.NotepadService.GetCurrentAsync());
+        Assert.False(vm.Input.PreviewIsError); // пересечение в блокноте — не ошибка
+        Assert.Equal("", vm.Input.QuickInput);
+        Assert.Equal("Добавлено: 1 запись · не в статистике: 1 (пересечение с журналом)", vm.StatusText);
+        var row = Assert.Single(vm.Rows);
+        Assert.True(row.IsNotInStatistics);
+        Assert.Equal("не в статистике", row.StatusLabel);
+        Assert.Equal("Пересекается с записью 10.11 09:00–12:00 «из журнала» — в статистику не записано", row.StatusHint);
+        Assert.Equal("В блокноте: 1 ч 00 мин · в статистике: 0 ч 00 мин · 1 запись · ведётся с 10 нояб., 14:37", vm.SummaryText);
+        Assert.Equal(stats, await StatsAsync(host));
+        Assert.Equal(dump, await EntriesDumpAsync(host)); // в базу ничего не записано
+        Assert.Single(JournalEntries(host));
     }
 
     // ---------- S8 ----------
@@ -510,7 +515,7 @@ public class NotepadViewModelTests
         Assert.True(vm.IsCurrentVisible);
         Assert.False(vm.IsArchiveVisible);
         Assert.True(vm.IsArchiveEmpty);
-        Assert.Equal("Блокнот пуст — запишите время, например 0900 1800 задача. Записи попадут и в журнал, и в статистику.", NotepadViewModel.EmptyCurrentText);
+        Assert.Equal("Блокнот пуст — запишите время, например 0900 1800 задача. Записи без пересечений попадут и в журнал, и в статистику.", NotepadViewModel.EmptyCurrentText);
         Assert.Equal("Здесь появятся очищенные блокноты", NotepadViewModel.EmptyArchiveText);
         Assert.Equal(100, vm.MaxTitleLength);
 
@@ -574,11 +579,7 @@ public class NotepadViewModelTests
         var result = await host.NotepadService.AddFromTextAsync(vm.Input.QuickInput, host.Today); // даже в обход кнопки
         Assert.Equal(2, result.Errors.Count);
 
-        // Строки по отдельности верны, но вторая пересекается с первой — тоже ничего не добавляется.
-        vm.Input.QuickInput = "0900 1000 первая\n0930 1100 вторая";
-        await vm.Input.AddCommand.ExecuteAsync(null);
-        Assert.StartsWith("✗ Строка 2: Пересекается с записью", vm.Input.PreviewText, StringComparison.Ordinal);
-
+        // Пересечение строк друг с другом в блокноте — не ошибка (F9.2, сценарий S23).
         await vm.LoadAsync();
         Assert.True(vm.IsEmpty);
         Assert.Empty(await host.Repository.GetAllAsync());
@@ -614,7 +615,7 @@ public class NotepadViewModelTests
 
         using var late = await TestHost.StartAsync(start.AddDays(31), dataDir: dir, keepExisting: true);
 
-        Assert.Equal((2, 2), await CountsAsync(late)); // убранная привязка и привязка удалённого листа; удалённый лист
+        Assert.Equal((2, 2), await CountsAsync(late)); // убранная строка и строка удалённого листа; удалённый лист
         Assert.Equal(dump, await EntriesDumpAsync(late)); // записи не тронуты
         Assert.Equal("осталась", Assert.Single(late.Notepad.Rows).Comment);
         Assert.Equal("архив остаётся", Assert.Single(Assert.Single(late.Notepad.ArchiveSheets).Entries).Comment);
@@ -622,7 +623,7 @@ public class NotepadViewModelTests
 
         static Task<(int Items, int Sheets)> CountsAsync(TestHost host) =>
             host.Services.GetRequiredService<SqliteConnectionFactory>().RunAsync(c =>
-                (c.ExecuteScalar<int>("SELECT count(*) FROM notepad_items"), c.ExecuteScalar<int>("SELECT count(*) FROM notepad_sheets")));
+                (c.ExecuteScalar<int>("SELECT count(*) FROM notepad_lines"), c.ExecuteScalar<int>("SELECT count(*) FROM notepad_sheets")));
     }
 
     // ---------- Название (F8.7) ----------
@@ -677,8 +678,25 @@ public class NotepadViewModelTests
         await AddAsync(vm, "0900 1000");
 
         var current = (await host.NotepadService.GetCurrentAsync())!;
-        Assert.Equal(("Заказ", 1), (current.Sheet.Title, current.Entries.Count));
+        Assert.Equal(("Заказ", 1), (current.Sheet.Title, current.Lines.Count));
         Assert.Equal("Заказ", vm.Title);
+    }
+
+    // ---------- S13: исходный баг ----------
+
+    [AvaloniaFact]
+    public async Task S13_AddRemoveAddAgain_SecondLineAccepted()
+    {
+        using var host = await TestHost.StartAsync();
+        var vm = host.Notepad;
+        await AddAsync(vm, "1100 1300");
+        await vm.RemoveEntryCommand.ExecuteAsync(vm.Rows[0]);
+
+        vm.Input.QuickInput = "1100 1300";
+        await vm.Input.AddCommand.ExecuteAsync(null);
+
+        Assert.False(vm.Input.PreviewIsError, vm.Input.PreviewText);
+        Assert.Single(vm.Rows);
     }
 
     // ---------- Отмена по активной вкладке (F8.20) ----------

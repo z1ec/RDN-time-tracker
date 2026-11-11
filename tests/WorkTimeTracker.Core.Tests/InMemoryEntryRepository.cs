@@ -9,7 +9,12 @@ public sealed class InMemoryEntryRepository : IEntryRepository
     private readonly Dictionary<long, (WorkEntry Entry, bool Deleted)> _items = [];
     private long _nextId = 1;
 
+    /// <summary>Запись изменена — так блокнот в памяти узнаёт о правке в «Журнале» (F9.6, как транзакция в SQLite).</summary>
+    public event Action<WorkEntry>? Updated;
+
     public IEnumerable<WorkEntry> Active => _items.Values.Where(v => !v.Deleted).Select(v => v.Entry);
+
+    public bool IsDeleted(long id) => _items.TryGetValue(id, out var v) && v.Deleted;
 
     public Task<IReadOnlyList<WorkEntry>> AddAsync(IReadOnlyList<EntryDraft> drafts, CancellationToken ct = default)
     {
@@ -30,6 +35,7 @@ public sealed class InMemoryEntryRepository : IEntryRepository
         }
 
         _items[entry.Id] = (entry, false);
+        Updated?.Invoke(entry);
         return Task.FromResult(true);
     }
 

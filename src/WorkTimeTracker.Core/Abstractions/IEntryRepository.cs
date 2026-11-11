@@ -11,7 +11,10 @@ public interface IEntryRepository
     /// <summary>Добавляет записи атомарно: либо все, либо ни одной (F1.2).</summary>
     Task<IReadOnlyList<WorkEntry>> AddAsync(IReadOnlyList<EntryDraft> drafts, CancellationToken ct = default);
 
-    /// <summary>Изменяет запись; возвращает <c>false</c>, если её нет (или она удалена).</summary>
+    /// <summary>
+    /// Изменяет запись; возвращает <c>false</c>, если её нет (или она удалена). Связанная строка блокнота
+    /// получает те же дату, время и комментарий в той же транзакции (F9.6).
+    /// </summary>
     Task<bool> UpdateAsync(WorkEntry entry, CancellationToken ct = default);
 
     Task<WorkEntry?> GetAsync(long id, CancellationToken ct = default);

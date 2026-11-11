@@ -29,10 +29,13 @@ public static class EntryValidator
             .FirstOrDefault(e => Overlaps(draft.AbsoluteStart, draft.AbsoluteEnd, e.AbsoluteStart, e.AbsoluteEnd));
 
     /// <summary>Текст ошибки: «Пересекается с записью 10.11 13:00–15:00 «обед»».</summary>
-    public static string OverlapMessage(WorkEntry other)
+    public static string OverlapMessage(WorkEntry other) => $"Пересекается с записью {Describe(other)}";
+
+    /// <summary>Запись для сообщений: «10.11 13:00–15:00 «обед»» (комментарий сокращается до 40 символов).</summary>
+    public static string Describe(WorkEntry entry)
     {
-        var text = $"Пересекается с записью {RuFormat.DayMonthNumeric(other.Date)} {RuFormat.Clock(other.StartMinute)}–{RuFormat.Clock(other.EndMinute)}";
-        return other.Comment.Length == 0 ? text : $"{text} «{Shorten(other.Comment, 40)}»";
+        var text = $"{RuFormat.DayMonthNumeric(entry.Date)} {RuFormat.Clock(entry.StartMinute)}–{RuFormat.Clock(entry.EndMinute)}";
+        return entry.Comment.Length == 0 ? text : $"{text} «{Shorten(entry.Comment, 40)}»";
     }
 
     /// <summary>Проверяет черновик на пересечения; возвращает текст ошибки или <c>null</c>.</summary>

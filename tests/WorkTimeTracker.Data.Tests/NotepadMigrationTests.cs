@@ -3,8 +3,9 @@ using Dapper;
 namespace WorkTimeTracker.Data.Tests;
 
 /// <summary>
-/// F8 / F4.4: обновление настоящей БД версии 1.0.0 (схема v2) до схемы с блокнотом.
+/// F8 / F4.4: обновление настоящей БД версии 1.0.0 (схема v2) до текущей схемы (цепочка 1.0.0 → 1.2.0).
 /// Фикстура — замороженная копия схемы 1.0.0 и данные, как их записывала версия 1.0.0.
+/// Обновление с 1.1.0 (S27) — <see cref="NotepadLinesMigrationTests"/>.
 /// </summary>
 public class NotepadMigrationTests
 {
@@ -74,15 +75,16 @@ public class NotepadMigrationTests
         var result = await db.Initializer.InitializeAsync(_ct);
 
         Assert.Equal(2, result.Migration.FromVersion);
-        Assert.Equal(3, result.Migration.ToVersion);
-        Assert.True(Migrator.LatestVersion >= 3);
+        Assert.Equal(Migrator.LatestVersion, result.Migration.ToVersion);
+        Assert.Equal(4, Migrator.LatestVersion);
         Assert.NotNull(result.AutoBackupPath); // копия сделана до миграции
         using (var c = db.Factory.Open())
         {
             Assert.Equal(before, Dump(c));
             Assert.Equal(4, c.ExecuteScalar<int>("SELECT count(*) FROM settings"));
             Assert.Equal(0, c.ExecuteScalar<int>("SELECT count(*) FROM notepad_sheets"));
-            Assert.Equal(0, c.ExecuteScalar<int>("SELECT count(*) FROM notepad_items"));
+            Assert.Equal(0, c.ExecuteScalar<int>("SELECT count(*) FROM notepad_lines"));
+            Assert.Equal(0, c.ExecuteScalar<int>("SELECT count(*) FROM sqlite_master WHERE name = 'notepad_items'"));
             Assert.Equal("ok", c.ExecuteScalar<string>("PRAGMA integrity_check"));
             Assert.Empty(c.Query("PRAGMA foreign_key_check"));
         }
@@ -112,26 +114,32 @@ public class NotepadMigrationTests
         using var db = CreateV100();
         await db.Initializer.InitializeAsync(_ct);
 
-        var added = await db.Notepad.AddEntriesAsync(
-            [new Core.Model.EntryDraft(new DateOnly(2026, 11, 10), new Core.Model.TimeRange(540, 600), "новая")], _ct);
+        var added = await db.Notepad.AddLinesAsync(
+            [new(new Core.Model.EntryDraft(new DateOnly(2026, 11, 10), new Core.Model.TimeRange(540, 600), "новая"), CreateEntry: true)], _ct);
 
-        Assert.Equal(8, added[0].Id); // AUTOINCREMENT продолжает нумерацию старой БД
+        Assert.Equal(8, added[0].EntryId); // AUTOINCREMENT продолжает нумерацию старой БД
         Assert.Equal(5, (await db.Entries.GetAllAsync(_ct)).Count);
-        Assert.Equal("новая", Assert.Single((await db.Notepad.GetCurrentAsync(_ct))!.Entries).Comment);
+        Assert.Equal("новая", Assert.Single((await db.Notepad.GetCurrentAsync(_ct))!.Lines).Comment);
     }
 
     [Fact]
-    public async Task Migration0003_CreatesTablesAndIndexes()
+    public async Task CurrentSchema_TablesAndIndexes()
     {
         using var db = await TestDb.CreateMigratedAsync();
         using var c = db.Factory.Open();
         var objects = c.Query<string>("SELECT name FROM sqlite_master").ToList();
         Assert.Contains("notepad_sheets", objects);
-        Assert.Contains("notepad_items", objects);
-        Assert.Contains("ix_notepad_items_sheet", objects);
+        Assert.Contains("notepad_lines", objects);
+        Assert.DoesNotContain("notepad_items", objects);
+        Assert.DoesNotContain("ix_notepad_items_sheet", objects);
+        Assert.Contains("ix_notepad_lines_sheet", objects);
+        Assert.Contains("ux_notepad_lines_entry", objects);
         Assert.Contains("ux_notepad_sheets_current", objects);
         Assert.Equal("0003_notepad.sql", Migrator.Embedded[2].Name);
+        Assert.Equal("0004_notepad_lines.sql", Migrator.Embedded[3].Name);
         var entryColumns = c.Query<string>("SELECT name FROM pragma_table_info('entries')").ToList();
         Assert.Equal(["id", "work_date", "start_min", "end_min", "comment", "created_at", "updated_at", "deleted_at"], entryColumns);
+        var lineColumns = c.Query<string>("SELECT name FROM pragma_table_info('notepad_lines')").ToList();
+        Assert.Equal(["id", "sheet_id", "work_date", "start_min", "end_min", "comment", "entry_id", "added_at", "updated_at", "removed_at"], lineColumns);
     }
 }

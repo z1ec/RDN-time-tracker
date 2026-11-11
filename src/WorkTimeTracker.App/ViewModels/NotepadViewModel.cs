@@ -8,7 +8,10 @@ using WorkTimeTracker.Core.Services;
 
 namespace WorkTimeTracker.App.ViewModels;
 
-/// <summary>Карточка листа в архиве блокнота (F8.15). Записи — только для чтения, в текущем их состоянии (F8.16).</summary>
+/// <summary>
+/// Карточка листа в архиве блокнота (F8.15). Строки — только для чтения; статусы и обе суммы — по тем же правилам,
+/// что у текущего листа (F9.9); связанные строки получают правки из «Журнала» (F8.16, F9.6).
+/// </summary>
 public sealed partial class ArchiveSheetViewModel : ObservableObject
 {
     public ArchiveSheetViewModel(NotepadSheetView view, TimeZoneInfo zone, bool isExpanded)
@@ -16,10 +19,10 @@ public sealed partial class ArchiveSheetViewModel : ObservableObject
         Id = view.Sheet.Id;
         Title = NotepadFormat.SheetTitle(view, zone);
         DateRangeText = NotepadFormat.DateRange(view);
-        TotalsText = NotepadFormat.Totals(view.TotalMinutes, view.Entries.Count);
+        TotalsText = NotepadFormat.Totals(view);
         ClearedText = NotepadFormat.Cleared(view, zone);
         AllEntriesDeleted = view.IsEmpty;
-        Entries = [.. view.Entries.Select(e => new EntryRow(e))];
+        Entries = [.. view.Lines.Select(l => new NotepadLineRow(l))];
         IsExpanded = isExpanded;
     }
 
@@ -31,16 +34,16 @@ public sealed partial class ArchiveSheetViewModel : ObservableObject
     /// <summary>Диапазон дат записей или «записи удалены».</summary>
     public string DateRangeText { get; }
 
-    /// <summary>«23 ч 15 мин · 3 записи».</summary>
+    /// <summary>«23 ч 15 мин · 3 записи» или «7 ч 00 мин · в статистике: 4 ч 00 мин · 2 записи» (F9.4).</summary>
     public string TotalsText { get; }
 
     /// <summary>«очищен 6 нояб., 18:40».</summary>
     public string ClearedText { get; }
 
-    /// <summary>Все записи листа удалены в журнале (F8.16).</summary>
+    /// <summary>У листа не осталось видимых строк: все связанные записи удалены в журнале (F8.16).</summary>
     public bool AllEntriesDeleted { get; }
 
-    public IReadOnlyList<EntryRow> Entries { get; }
+    public IReadOnlyList<NotepadLineRow> Entries { get; }
 
     /// <summary>«3–6 нояб. · 23 ч 15 мин · 3 записи · очищен 6 нояб., 18:40».</summary>
     public string SubtitleText => AllEntriesDeleted ? $"{TotalsText} · {ClearedText}" : $"{DateRangeText} · {TotalsText} · {ClearedText}";
@@ -59,13 +62,17 @@ public sealed partial class ArchiveSheetViewModel : ObservableObject
 }
 
 /// <summary>
-/// Вкладка «Блокнот» (F8): рабочий лист поверх общих записей. Добавленное здесь — обычные записи журнала;
-/// блокнот помнит, что добавлено через него, показывает сумму, а «Очистить всё» переносит лист в архив.
-/// Кроме добавления и правки, ни одно действие вкладки не меняет записи и статистику (ADR-0009).
+/// Вкладка «Блокнот» (F8, F9): песочница со своими строками. Строка без пересечений с журналом сразу становится
+/// обычной записью журнала и статистики; с пересечением — остаётся только в блокноте (ADR-0010). Плашка показывает
+/// сумму всех строк и, если отличается, сумму в статистике; «Очистить всё» переносит лист в архив.
+/// Кроме добавления и правки, ни одно действие вкладки не меняет записи и статистику (ADR-0009, ADR-0010).
 /// </summary>
 public sealed partial class NotepadViewModel : ObservableObject
 {
-    public const string EmptyCurrentText = "Блокнот пуст — запишите время, например 0900 1800 задача. Записи попадут и в журнал, и в статистику.";
+    public const string EmptyCurrentText = "Блокнот пуст — запишите время, например 0900 1800 задача. Записи без пересечений попадут и в журнал, и в статистику.";
+
+    /// <summary>Пояснение в диалоге правки строки (F9.5).</summary>
+    public const string EditHint = "Если новое время пересечётся с другой записью журнала, строка изменится только в блокноте.";
     public const string EmptyArchiveText = "Здесь появятся очищенные блокноты";
 
     private readonly NotepadService _notepad;
@@ -76,6 +83,7 @@ public sealed partial class NotepadViewModel : ObservableObject
     private int _loadVersion;
     private bool _active; // до первой явной загрузки (после инициализации БД) к БД не обращаемся
     private bool _settingTitle;
+    private NotepadAddResult? _lastAdded;
 
     public NotepadViewModel(NotepadService notepad, EntryService entries, AppEvents events, IUserInteraction interaction, TimeProvider time)
     {
@@ -92,17 +100,18 @@ public sealed partial class NotepadViewModel : ObservableObject
             async (text, date) =>
             {
                 await TitleSaveTask;
-                return await notepad.AddFromTextAsync(text, date);
+                return ToInputResult(await notepad.AddFromTextAsync(text, date));
             },
             async draft =>
             {
                 await TitleSaveTask;
-                return await notepad.AddAsync(draft);
+                return ToInputResult(await notepad.AddAsync(draft));
             },
             OnAddedAsync);
         Undo = new UndoToastViewModel(time);
         Title = "";
         SummaryText = NotepadFormat.Summary(null, time.LocalTimeZone);
+        SummaryHint = "";
         StatusText = "";
         ArchiveTabText = "Архив (0)";
         IsEmpty = true;
@@ -153,6 +162,13 @@ public sealed partial class NotepadViewModel : ObservableObject
     [ObservableProperty]
     public partial string SummaryText { get; set; }
 
+    /// <summary>Пояснение ко второй цифре плашки (F9.4); пусто, если суммы совпадают.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasSummaryHint))]
+    public partial string SummaryHint { get; set; }
+
+    public bool HasSummaryHint => SummaryHint.Length > 0;
+
     [ObservableProperty]
     public partial string StatusText { get; set; }
 
@@ -188,9 +204,9 @@ public sealed partial class NotepadViewModel : ObservableObject
         _settingTitle = false;
     }
 
-    // ---------- Текущий лист (F8.8) ----------
+    // ---------- Текущий лист (F8.8, F9.3) ----------
 
-    public ObservableCollection<EntryRow> Rows { get; } = [];
+    public ObservableCollection<NotepadLineRow> Rows { get; } = [];
 
     /// <summary>Выделенные строки (Ctrl/Shift+клик, F8.11).</summary>
     public ObservableCollection<object> SelectedRows { get; } = [];
@@ -224,12 +240,13 @@ public sealed partial class NotepadViewModel : ObservableObject
         var zone = _time.LocalTimeZone;
         SetTitleSilently(current?.Sheet.Title ?? "");
         SummaryText = NotepadFormat.Summary(current, zone);
+        SummaryHint = NotepadFormat.SummaryHint(current);
 
         Rows.Clear();
         SelectedRows.Clear();
-        foreach (var e in current?.Entries ?? [])
+        foreach (var line in current?.Lines ?? [])
         {
-            Rows.Add(new EntryRow(e));
+            Rows.Add(new NotepadLineRow(line));
         }
 
         IsEmpty = Rows.Count == 0;
@@ -245,41 +262,72 @@ public sealed partial class NotepadViewModel : ObservableObject
         ArchiveTabText = $"Архив ({ArchiveSheets.Count})";
     }
 
-    // ---------- Действия с записями (F8.10, F8.11) ----------
+    // ---------- Действия со строками (F9.2, F9.5, F9.8) ----------
+
+    /// <summary>Ввод отдаёт результат как у «Журнала»; ошибки — только формата (F9.1), пересечение — не ошибка (F9.2).</summary>
+    private EntryOperationResult ToInputResult(NotepadAddResult result)
+    {
+        _lastAdded = result;
+        return new EntryOperationResult([.. result.Lines.Select(l => l.Values)], result.Errors);
+    }
 
     private async Task OnAddedAsync(int count)
     {
-        StatusText = EntryInputViewModel.AddedText(count);
+        StatusText = NotepadFormat.Added(count, _lastAdded?.NotInStatisticsCount ?? 0);
+        var entriesChanged = _lastAdded is null || _lastAdded.NotInStatisticsCount < _lastAdded.Lines.Count;
+        _lastAdded = null;
         Undo.Invalidate();
-        await ReloadAndNotifyAsync();
+        await LoadAsync();
+        if (entriesChanged)
+        {
+            _events.RaiseEntriesChanged(this);
+        }
     }
 
-    /// <summary>Правка меняет саму запись — тот же диалог и проверки, что в «Журнале» (F8.10).</summary>
+    /// <summary>
+    /// Правка строки (F9.5): тот же диалог, что в «Журнале», но меняется строка блокнота; запись базы — только если
+    /// новое время ни с чем не пересекается. Пересечение — не ошибка: строка меняется только в блокноте.
+    /// </summary>
     [RelayCommand]
-    private async Task EditEntryAsync(EntryRow? row)
+    private async Task EditEntryAsync(NotepadLineRow? row)
     {
         if (row is null)
         {
             return;
         }
 
-        var editor = new EntryEditorViewModel(row.Entry, _entries);
-        if (await _interaction.EditEntryAsync(editor))
+        NotepadEditResult? result = null;
+        var editor = new EntryEditorViewModel(
+            row.Line.Values,
+            _entries,
+            async draft =>
+            {
+                await TitleSaveTask;
+                result = await _notepad.UpdateLineAsync(row.Id, draft);
+                return result.Errors;
+            },
+            "Изменить строку блокнота",
+            EditHint);
+        if (await _interaction.EditEntryAsync(editor) && result is { Line: { } line })
         {
-            StatusText = "Запись изменена";
+            StatusText = NotepadFormat.Edited(line);
             Undo.Invalidate();
-            await ReloadAndNotifyAsync();
+            await LoadAsync();
+            if (result.EntriesChanged)
+            {
+                _events.RaiseEntriesChanged(this);
+            }
         }
     }
 
     [RelayCommand]
-    private Task RemoveEntryAsync(EntryRow? row) => row is null ? Task.CompletedTask : RemoveAsync([row.Id]);
+    private Task RemoveEntryAsync(NotepadLineRow? row) => row is null ? Task.CompletedTask : RemoveAsync([row.Id]);
 
     [RelayCommand]
-    private Task RemoveSelectedAsync() => RemoveAsync([.. SelectedRows.OfType<EntryRow>().Select(r => r.Id)]);
+    private Task RemoveSelectedAsync() => RemoveAsync([.. SelectedRows.OfType<NotepadLineRow>().Select(r => r.Id)]);
 
     /// <summary>
-    /// ✕ / Del: запись убирается только из блокнота и остаётся в журнале и статистике (F8.11).
+    /// ✕ / Del: строка убирается только из блокнота; связанная запись остаётся в журнале и статистике (F9.8).
     /// Полного удаления записи на этой вкладке нет намеренно (F8.13).
     /// </summary>
     private async Task RemoveAsync(IReadOnlyList<long> ids)
@@ -303,7 +351,7 @@ public sealed partial class NotepadViewModel : ObservableObject
 
     // ---------- Очистка и архив (F8.14, F8.17) ----------
 
-    /// <summary>«Очистить всё»: лист уходит в архив, записи остаются в журнале и статистике. Без подтверждения — с отменой.</summary>
+    /// <summary>«Очистить всё»: лист уходит в архив, записи остаются в журнале и статистике (F9.9). Без подтверждения — с отменой.</summary>
     [RelayCommand(CanExecute = nameof(CanClear))]
     private async Task ClearAllAsync()
     {
@@ -343,10 +391,4 @@ public sealed partial class NotepadViewModel : ObservableObject
         await LoadAsync();
     }
 
-    /// <summary>Записи изменились (добавление, правка) — обновить «Журнал» и «Статистику».</summary>
-    private async Task ReloadAndNotifyAsync()
-    {
-        await LoadAsync();
-        _events.RaiseEntriesChanged(this);
-    }
 }

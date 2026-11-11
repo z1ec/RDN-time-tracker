@@ -130,8 +130,9 @@ internal static class SelfTest
     }
 
     /// <summary>
-    /// Блокнот (F8): добавить → убрать ✕ и отменить → «Очистить всё» → удалить лист из архива и отменить.
-    /// После добавления ни один шаг не должен менять записи и статистику.
+    /// Блокнот (F8, F9): добавить → строка с пересечением (только блокнот) → правка с пересечением («в статистике другое
+    /// время») → убрать ✕ и отменить → «Очистить всё» → удалить лист из архива и отменить.
+    /// После первого добавления ни один шаг не должен менять записи и статистику.
     /// </summary>
     private static async Task RunNotepadChecks(ServiceProvider services, Reporter r)
     {
@@ -152,32 +153,45 @@ internal static class SelfTest
         var before = await StatsAsync();
         var added = await notepad.AddFromTextAsync("1900 2000 блокнот", today);
         var current = await notepad.GetCurrentAsync();
-        var inJournal = added.IsSuccess ? await repo.GetAsync(added.Entries[0].Id) : null;
+        var line = added.Lines.FirstOrDefault();
+        var inJournal = line?.EntryId is { } eid ? await repo.GetAsync(eid) : null;
         var stats = await StatsAsync();
-        r.Check("Блокнот: запись добавлена в лист, журнал и статистику",
-            added.IsSuccess && current is { Entries.Count: 1, TotalMinutes: 60 } && inJournal is not null && stats != before,
+        r.Check("Блокнот: строка без пересечений — в листе, журнале и статистике",
+            added.IsSuccess && line is { Status: NotepadLineStatus.InStatistics } && current is { Lines.Count: 1, TotalMinutes: 60 } && inJournal is not null && stats != before,
             $"{string.Join("; ", added.Errors)}{NotepadFormat.Summary(current, TimeZoneInfo.Local)}; {before} → {stats}");
-        var id = added.Entries[0].Id;
+        var lineId = line?.Id ?? 0;
+        var entryId = line?.EntryId ?? 0;
 
+        // F9.2: пересечение — не ошибка; строка только в блокноте, статистика не меняется.
         var overlap = await notepad.AddFromTextAsync("1100 1200", today);
-        r.Check("Блокнот: пересечение с записью журнала отклонено", !overlap.IsSuccess && await StatsAsync() == stats, overlap.Errors.FirstOrDefault());
+        var withOverlap = await notepad.GetCurrentAsync();
+        r.Check("Блокнот: строка с пересечением — только в блокноте, статистика не изменилась",
+            overlap is { IsSuccess: true, Lines: [{ Status: NotepadLineStatus.NotInStatistics }] } && withOverlap is { Lines.Count: 2, TotalMinutes: 120, StatisticsMinutes: 60 } && await StatsAsync() == stats,
+            $"{NotepadFormat.Summary(withOverlap, TimeZoneInfo.Local)}; {(overlap.Lines.Count == 1 ? NotepadFormat.StatusHint(overlap.Lines[0]) : string.Join("; ", overlap.Errors))}");
 
-        await notepad.RemoveAsync([id]);
+        // F9.5: правка связанной строки на время с пересечением — меняется только строка.
+        var edited = await notepad.UpdateLineAsync(lineId, new EntryDraft(today, new TimeRange(17 * 60, 20 * 60), "блокнот"));
+        var entryAfterEdit = await repo.GetAsync(entryId);
+        r.Check("Блокнот: правка с пересечением — «в статистике другое время», база не изменилась",
+            edited is { IsSuccess: true, EntriesChanged: false, Line.Status: NotepadLineStatus.DifferentInStatistics } && entryAfterEdit is { StartMinute: 1140, EndMinute: 1200 } && await StatsAsync() == stats,
+            edited.Line is { } el ? $"{NotepadFormat.StatusLabel(el)}; {NotepadFormat.StatusHint(el)}" : string.Join("; ", edited.Errors));
+
+        await notepad.RemoveAsync([lineId]);
         var afterRemove = await notepad.GetCurrentAsync();
-        var keptInJournal = await repo.GetAsync(id) is not null;
+        var keptInJournal = await repo.GetAsync(entryId) is not null;
         var statsAfterRemove = await StatsAsync();
-        await notepad.UndoRemoveAsync([id]);
+        await notepad.UndoRemoveAsync([lineId]);
         var afterUndoRemove = await notepad.GetCurrentAsync();
         r.Check("Блокнот: ✕ убирает только из блокнота, отмена возвращает",
-            afterRemove is { IsEmpty: true } && keptInJournal && afterUndoRemove is { Entries.Count: 1 } && statsAfterRemove == stats && await StatsAsync() == stats,
+            afterRemove is { Lines.Count: 1 } && keptInJournal && afterUndoRemove is { Lines.Count: 2 } && statsAfterRemove == stats && await StatsAsync() == stats,
             statsAfterRemove);
 
         await notepad.SetTitleAsync("Self-test: лист");
         var sheetId = await notepad.ClearAsync();
         var archive = await notepad.GetArchiveAsync();
-        r.Check("Блокнот: «Очистить всё» переносит лист в архив",
-            sheetId is not null && await notepad.GetCurrentAsync() is null && archive is [{ Sheet.Title: "Self-test: лист", Entries.Count: 1 }] && await StatsAsync() == stats,
-            archive.Count == 1 ? $"{NotepadFormat.SheetTitle(archive[0], TimeZoneInfo.Local)}: {NotepadFormat.Totals(archive[0].TotalMinutes, archive[0].Entries.Count)}" : $"листов в архиве: {archive.Count}");
+        r.Check("Блокнот: «Очистить всё» переносит лист в архив со статусами и обеими суммами",
+            sheetId is not null && await notepad.GetCurrentAsync() is null && archive is [{ Sheet.Title: "Self-test: лист", Lines.Count: 2, HasStatisticsDifference: true }] && await StatsAsync() == stats,
+            archive.Count == 1 ? $"{NotepadFormat.SheetTitle(archive[0], TimeZoneInfo.Local)}: {NotepadFormat.Totals(archive[0])}" : $"листов в архиве: {archive.Count}");
 
         var deleted = sheetId is { } sid && await notepad.DeleteSheetAsync(sid);
         var archiveAfterDelete = await notepad.GetArchiveAsync();
@@ -185,10 +199,10 @@ internal static class SelfTest
         var restored = sheetId is { } rid && await notepad.UndoDeleteSheetAsync(rid);
         var archiveAfterRestore = await notepad.GetArchiveAsync();
         r.Check("Блокнот: удаление листа из архива и отмена",
-            deleted && archiveAfterDelete.Count == 0 && restored && archiveAfterRestore is [{ Entries.Count: 1 }] && statsAfterDelete == stats && await StatsAsync() == stats,
+            deleted && archiveAfterDelete.Count == 0 && restored && archiveAfterRestore is [{ Lines.Count: 2 }] && statsAfterDelete == stats && await StatsAsync() == stats,
             statsAfterDelete);
 
-        r.Check("Блокнот: записи и статистика не изменились", await repo.GetAsync(id) is { StartMinute: 1140, EndMinute: 1200, Comment: "блокнот" } && await StatsAsync() == stats, await StatsAsync());
+        r.Check("Блокнот: записи и статистика не изменились", await repo.GetAsync(entryId) is { StartMinute: 1140, EndMinute: 1200, Comment: "блокнот" } && await StatsAsync() == stats, await StatsAsync());
     }
 
     private sealed class Reporter(TextWriter log, TextWriter console)

@@ -4,7 +4,7 @@
         xmlns:vm="using:WorkTimeTracker.App.ViewModels"
         x:Class="WorkTimeTracker.App.Views.EditEntryWindow"
         x:DataType="vm:EntryEditorViewModel"
-        Title="Изменить запись"
+        Title="{Binding Title}"
         Icon="avares://WorkTimeTracker/Assets/app.ico"
         SizeToContent="WidthAndHeight" CanResize="False" ShowInTaskbar="False"
         WindowStartupLocation="CenterOwner"
@@ -13,7 +13,8 @@
     <KeyBinding Gesture="Escape" Command="{Binding $parent[views:EditEntryWindow].CancelCommand}" />
   </Window.KeyBindings>
   <StackPanel Margin="24" Spacing="12" Width="460">
-    <TextBlock Classes="h2" FontSize="18" Text="Изменить запись" />
+    <TextBlock Classes="h2" FontSize="18" Text="{Binding Title}" />
+    <TextBlock Classes="subtle" Text="{Binding Hint}" TextWrapping="Wrap" IsVisible="{Binding HasHint}" />
     <Grid ColumnDefinitions="*,*,*" ColumnSpacing="12">
       <StackPanel Spacing="4">
         <TextBlock Classes="subtle small" Text="Дата" />

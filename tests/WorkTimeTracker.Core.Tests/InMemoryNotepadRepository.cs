@@ -4,23 +4,67 @@ using WorkTimeTracker.Core.Model;
 namespace WorkTimeTracker.Core.Tests;
 
 /// <summary>Блокнот в памяти поверх <see cref="InMemoryEntryRepository"/> — для тестов сервисов Core.</summary>
-public sealed class InMemoryNotepadRepository(InMemoryEntryRepository entries, TimeProvider time) : INotepadRepository
+public sealed class InMemoryNotepadRepository : INotepadRepository
 {
+    private readonly InMemoryEntryRepository _entries;
+    private readonly TimeProvider _time;
     private readonly List<Sheet> _sheets = [];
-    private long _nextId = 1;
+    private long _nextSheetId = 1;
+    private long _nextLineId = 1;
+
+    public InMemoryNotepadRepository(InMemoryEntryRepository entries, TimeProvider time)
+    {
+        _entries = entries;
+        _time = time;
+
+        // F9.6: правка записи в «Журнале» переносится в связанную строку.
+        _entries.Updated += e =>
+        {
+            foreach (var line in _sheets.SelectMany(s => s.Lines).Where(l => l.EntryId == e.Id))
+            {
+                line.Values = new EntryDraft(e.Date, e.Range, e.Comment);
+            }
+        };
+    }
 
     private Sheet? Current => _sheets.SingleOrDefault(s => s.ClearedAt is null && s.DeletedAt is null);
 
-    public async Task<IReadOnlyList<WorkEntry>> AddEntriesAsync(IReadOnlyList<EntryDraft> drafts, CancellationToken ct = default)
+    public async Task<IReadOnlyList<NotepadLine>> AddLinesAsync(IReadOnlyList<NotepadLineDraft> lines, CancellationToken ct = default)
     {
         var sheet = Current ?? Create(string.Empty);
-        var added = await entries.AddAsync(drafts, ct);
-        foreach (var e in added)
+        var result = new List<NotepadLine>();
+        foreach (var draft in lines)
         {
-            sheet.Items[e.Id] = false;
+            var entry = draft.CreateEntry ? (await _entries.AddAsync([draft.Draft], ct))[0] : null;
+            var line = new Line { Id = _nextLineId++, Values = draft.Draft, EntryId = entry?.Id };
+            sheet.Lines.Add(line);
+            result.Add(ToLine(line)!);
         }
 
-        return added;
+        return result;
+    }
+
+    public Task<NotepadLine?> GetLineAsync(long lineId, CancellationToken ct = default) =>
+        Task.FromResult(FindCurrent(lineId) is { } l ? ToLine(l) : null);
+
+    public async Task<NotepadLine?> UpdateLineAsync(long lineId, EntryDraft values, NotepadLineUpdate mode, CancellationToken ct = default)
+    {
+        if (FindCurrent(lineId) is not { } line)
+        {
+            return null;
+        }
+
+        line.Values = values;
+        if (mode == NotepadLineUpdate.LineAndEntry && line.EntryId is { } id)
+        {
+            await _entries.UpdateAsync(values.ToEntry(id), ct);
+        }
+        else if (mode == NotepadLineUpdate.LineAndNewEntry && line.EntryId is null)
+        {
+            line.EntryId = (await _entries.AddAsync([values], ct))[0].Id;
+        }
+
+        return ToLine(line);
     }
 
     public Task<NotepadSheetView?> GetCurrentAsync(CancellationToken ct = default) =>
@@ -44,18 +88,18 @@ public sealed class InMemoryNotepadRepository(InMemoryEntryRepository entries, T
         return Task.CompletedTask;
     }
 
-    public Task<int> RemoveItemsAsync(IReadOnlyCollection<long> entryIds, CancellationToken ct = default) =>
-        Task.FromResult(Current is { } s ? SetRemoved([s], entryIds, true) : 0);
+    public Task<int> RemoveLinesAsync(IReadOnlyCollection<long> lineIds, CancellationToken ct = default) =>
+        Task.FromResult(Current is { } s ? SetRemoved([s], lineIds, true) : 0);
 
-    public Task<int> RestoreItemsAsync(IReadOnlyCollection<long> entryIds, CancellationToken ct = default) =>
-        Task.FromResult(SetRemoved(_sheets, entryIds, false));
+    public Task<int> RestoreLinesAsync(IReadOnlyCollection<long> lineIds, CancellationToken ct = default) =>
+        Task.FromResult(SetRemoved(_sheets, lineIds, false));
 
     public Task<long?> ClearCurrentAsync(CancellationToken ct = default)
     {
         var s = Current;
         if (s is not null)
         {
-            s.ClearedAt = time.GetUtcNow();
+            s.ClearedAt = _time.GetUtcNow();
         }
 
         return Task.FromResult(s?.Id);
@@ -76,7 +120,7 @@ public sealed class InMemoryNotepadRepository(InMemoryEntryRepository entries, T
     public Task<bool> DeleteSheetAsync(long sheetId, CancellationToken ct = default)
     {
         var s = _sheets.SingleOrDefault(x => x.Id == sheetId && x.ClearedAt is not null && x.DeletedAt is null);
-        s?.DeletedAt = time.GetUtcNow();
+        s?.DeletedAt = _time.GetUtcNow();
         return Task.FromResult(s is not null);
     }
 
@@ -93,32 +137,36 @@ public sealed class InMemoryNotepadRepository(InMemoryEntryRepository entries, T
     private static int SetRemoved(IEnumerable<Sheet> sheets, IReadOnlyCollection<long> ids, bool removed)
     {
         var n = 0;
-        foreach (var s in sheets)
+        foreach (var line in sheets.SelectMany(s => s.Lines).Where(l => ids.Contains(l.Id) && l.Removed != removed))
         {
-            foreach (var id in ids.Where(id => s.Items.TryGetValue(id, out var r) && r != removed))
-            {
-                s.Items[id] = removed;
-                n++;
-            }
+            line.Removed = removed;
+            n++;
         }
 
         return n;
     }
 
+    private Line? FindCurrent(long lineId) => Current?.Lines.SingleOrDefault(l => l.Id == lineId && IsVisible(l));
+
+    private bool IsVisible(Line l) => !l.Removed && (l.EntryId is not { } id || !_entries.IsDeleted(id));
+
+    private NotepadLine? ToLine(Line l)
+    {
+        var linked = l.EntryId is { } id ? _entries.Active.SingleOrDefault(e => e.Id == id) : null;
+        return new NotepadLine(l.Id, l.Values.Date, l.Values.Range.StartMinute, l.Values.Range.EndMinute, l.Values.Comment, linked);
+    }
+
     private Sheet Create(string title)
     {
-        var s = new Sheet { Id = _nextId++, Title = title, StartedAt = time.GetUtcNow() };
+        var s = new Sheet { Id = _nextSheetId++, Title = title, StartedAt = _time.GetUtcNow() };
         _sheets.Add(s);
         return s;
     }
 
-    private NotepadSheetView View(Sheet s)
-    {
-        var visible = s.Items.Where(i => !i.Value).Select(i => i.Key).ToHashSet();
-        return new NotepadSheetView(
+    private NotepadSheetView View(Sheet s) =>
+        new(
             new NotepadSheet(s.Id, s.Title, s.StartedAt, s.ClearedAt),
-            [.. entries.Active.Where(e => visible.Contains(e.Id)).OrderBy(e => e.Date).ThenBy(e => e.StartMinute)]);
-    }
+            [.. s.Lines.Where(IsVisible).OrderBy(l => l.Values.Date).ThenBy(l => l.Values.Range.StartMinute).ThenBy(l => l.Id).Select(l => ToLine(l)!)]);
 
     private sealed class Sheet
     {
@@ -132,7 +180,17 @@ public sealed class InMemoryNotepadRepository(InMemoryEntryRepository entries, T
 
         public DateTimeOffset? DeletedAt { get; set; }
 
-        /// <summary>Запись → убрана ли из листа.</summary>
-        public Dictionary<long, bool> Items { get; } = [];
+        public List<Line> Lines { get; } = [];
+    }
+
+    private sealed class Line
+    {
+        public long Id { get; init; }
+
+        public required EntryDraft Values { get; set; }
+
+        public long? EntryId { get; set; }
+
+        public bool Removed { get; set; }
     }
 }

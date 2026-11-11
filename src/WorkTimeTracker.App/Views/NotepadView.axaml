@@ -75,7 +75,7 @@
               <KeyBinding Gesture="Delete" Command="{Binding RemoveSelectedCommand}" />
             </ListBox.KeyBindings>
             <ListBox.ItemTemplate>
-              <DataTemplate x:DataType="vm:EntryRow">
+              <DataTemplate x:DataType="vm:NotepadLineRow">
                 <Grid ColumnDefinitions="90,140,32,110,*,Auto,Auto" Background="Transparent"
                       DoubleTapped="OnEntryDoubleTapped"
                       AutomationProperties.Name="{Binding AccessibleName}">
@@ -163,7 +163,7 @@
                   <!-- Записи листа: только чтение, текущее состояние (F8.16) -->
                   <ItemsControl ItemsSource="{Binding Entries}" IsVisible="{Binding IsExpanded}" Margin="40,4,12,8">
                     <ItemsControl.ItemTemplate>
-                      <DataTemplate x:DataType="vm:EntryRow">
+                      <DataTemplate x:DataType="vm:NotepadLineRow">
                         <Grid ColumnDefinitions="90,140,32,110,*" Margin="0,5" AutomationProperties.Name="{Binding AccessibleName}">
                           <TextBlock Text="{Binding DateText}" Classes="subtle" />
                           <TextBlock Grid.Column="1" Text="{Binding TimeText}" FontWeight="SemiBold" />

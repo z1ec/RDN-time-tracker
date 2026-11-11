@@ -27,20 +27,15 @@ public sealed class EntryRepository(SqliteConnectionFactory factory, TimeProvide
             },
             ct);
 
+    /// <summary>Изменяет запись; связанная строка блокнота получает те же значения в той же транзакции (F9.6).</summary>
     public Task<bool> UpdateAsync(WorkEntry entry, CancellationToken ct = default) =>
         factory.RunAsync(
             c =>
             {
                 using var tx = c.BeginTransaction();
-                var n = c.Execute(
-                    """
-                    UPDATE entries SET work_date = @date, start_min = @start, end_min = @end, comment = @comment, updated_at = @now
-                    WHERE id = @id AND deleted_at IS NULL
-                    """,
-                    new { id = entry.Id, date = FormatDate(entry.Date), start = entry.StartMinute, end = entry.EndMinute, comment = entry.Comment, now = Now() },
-                    tx);
+                var updated = UpdateEntry(c, tx, entry, Now());
                 tx.Commit();
-                return n == 1;
+                return updated;
             },
             ct);
 
@@ -105,7 +100,7 @@ public sealed class EntryRepository(SqliteConnectionFactory factory, TimeProvide
             },
             ct);
 
-    /// <summary>Вставка записей внутри чужой транзакции — общая для журнала и блокнота (F8.4).</summary>
+    /// <summary>Вставка записей внутри чужой транзакции — общая для журнала и блокнота (F8.4, F9.2).</summary>
     internal static List<WorkEntry> InsertEntries(SqliteConnection c, SqliteTransaction tx, IReadOnlyList<EntryDraft> drafts, string now)
     {
         var result = new List<WorkEntry>(drafts.Count);
@@ -123,6 +118,31 @@ public sealed class EntryRepository(SqliteConnectionFactory factory, TimeProvide
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// Изменение записи внутри чужой транзакции — общее для «Журнала» и правки строки блокнота (F9.5, F9.6).
+    /// Правка записи всегда переносится в связанную строку блокнота: последняя правка пользователя — в «Журнале».
+    /// </summary>
+    internal static bool UpdateEntry(SqliteConnection c, SqliteTransaction tx, WorkEntry entry, string now)
+    {
+        var args = new { id = entry.Id, date = FormatDate(entry.Date), start = entry.StartMinute, end = entry.EndMinute, comment = entry.Comment, now };
+        var n = c.Execute(
+            """
+            UPDATE entries SET work_date = @date, start_min = @start, end_min = @end, comment = @comment, updated_at = @now
+            WHERE id = @id AND deleted_at IS NULL
+            """,
+            args,
+            tx);
+        if (n == 1)
+        {
+            c.Execute(
+                "UPDATE notepad_lines SET work_date = @date, start_min = @start, end_min = @end, comment = @comment, updated_at = @now WHERE entry_id = @id",
+                args,
+                tx);
+        }
+
+        return n == 1;
     }
 
     internal static string FormatDate(DateOnly d) => d.ToString(DateFormat, CultureInfo.InvariantCulture);

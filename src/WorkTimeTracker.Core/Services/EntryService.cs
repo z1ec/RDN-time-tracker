@@ -16,12 +16,6 @@ public sealed record EntryOperationResult(IReadOnlyList<WorkEntry> Entries, IRea
 }
 
 /// <summary>
-/// Способ сохранить проверенные черновики. По умолчанию — <see cref="IEntryRepository.AddAsync"/>;
-/// блокнот (F8.4) подставляет вставку записей вместе с привязками к листу в одной транзакции.
-/// </summary>
-public delegate Task<IReadOnlyList<WorkEntry>> EntryInserter(IReadOnlyList<EntryDraft> drafts, CancellationToken ct);
-
-/// <summary>
 /// Сценарии работы с записями: добавление из быстрого ввода (F1) и формы (F2), редактирование (F6.3),
 /// удаление с отменой (F5). Одна точка валидации: <see cref="EntryRules"/> + <see cref="EntryValidator"/>.
 /// </summary>
@@ -33,12 +27,11 @@ public sealed class EntryService(IEntryRepository repository, TimeProvider time)
 
     public DateOnly Today => _parser.Today;
 
-    /// <summary>Добавляет записи из текста (одна или несколько строк). Атомарно: ошибка в любой строке — ничего не добавляется.</summary>
-    public Task<EntryOperationResult> AddFromTextAsync(string? text, DateOnly selectedDate, CancellationToken ct = default) =>
-        AddFromTextAsync(text, selectedDate, repository.AddAsync, ct);
-
-    /// <summary>То же, но проверенные записи сохраняет <paramref name="insert"/> (F8.4).</summary>
-    public async Task<EntryOperationResult> AddFromTextAsync(string? text, DateOnly selectedDate, EntryInserter insert, CancellationToken ct = default)
+    /// <summary>
+    /// Добавляет записи из текста (одна или несколько строк). Атомарно: ошибка в любой строке, в том числе
+    /// пересечение, — ничего не добавляется (F1.2, F9.10).
+    /// </summary>
+    public async Task<EntryOperationResult> AddFromTextAsync(string? text, DateOnly selectedDate, CancellationToken ct = default)
     {
         var batch = _parser.ParseMany(text, selectedDate);
         if (batch.IsEmpty)
@@ -59,7 +52,7 @@ public sealed class EntryService(IEntryRepository repository, TimeProvider time)
             return new EntryOperationResult([], errors);
         }
 
-        var added = await insert([.. batch.Lines.Select(l => l.Draft)], ct).ConfigureAwait(false);
+        var added = await repository.AddAsync([.. batch.Lines.Select(l => l.Draft)], ct).ConfigureAwait(false);
         return EntryOperationResult.Ok(added);
     }
 
@@ -85,11 +78,7 @@ public sealed class EntryService(IEntryRepository repository, TimeProvider time)
     }
 
     /// <summary>Добавляет одну запись (форма F2).</summary>
-    public Task<EntryOperationResult> AddAsync(EntryDraft draft, CancellationToken ct = default) =>
-        AddAsync(draft, repository.AddAsync, ct);
-
-    /// <summary>То же, но проверенную запись сохраняет <paramref name="insert"/> (F8.4).</summary>
-    public async Task<EntryOperationResult> AddAsync(EntryDraft draft, EntryInserter insert, CancellationToken ct = default)
+    public async Task<EntryOperationResult> AddAsync(EntryDraft draft, CancellationToken ct = default)
     {
         var validation = Revalidate(draft);
         if (validation is not null)
@@ -103,7 +92,7 @@ public sealed class EntryService(IEntryRepository repository, TimeProvider time)
             return new EntryOperationResult([], errors);
         }
 
-        return EntryOperationResult.Ok(await insert([draft], ct).ConfigureAwait(false));
+        return EntryOperationResult.Ok(await repository.AddAsync([draft], ct).ConfigureAwait(false));
     }
 
     /// <summary>Изменяет запись (F6.3): та же валидация, пересечения — без учёта самой записи.</summary>
@@ -135,8 +124,43 @@ public sealed class EntryService(IEntryRepository repository, TimeProvider time)
     public Task<int> UndoDeleteAsync(IReadOnlyCollection<long> ids, CancellationToken ct = default) =>
         ids.Count == 0 ? Task.FromResult(0) : repository.RestoreAsync(ids, ct);
 
+    /// <summary>
+    /// Пересечения черновиков с записями базы — тот же <see cref="EntryValidator"/>, с ночными сменами на соседних днях
+    /// (F9.2, F9.3, F9.5). Для каждого черновика — первая пересекающаяся запись или <c>null</c>.
+    /// </summary>
+    /// <param name="items">Черновики и id записи, которую не сравнивать с черновиком (правка связанной строки).</param>
+    /// <param name="accumulate">
+    /// Черновики без пересечений считаются записанными и учитываются для следующих — по порядку, как при многострочной
+    /// вставке в блокнот: строка, пересекающаяся с предыдущей строкой той же вставки, в базу не попадает.
+    /// </param>
+    /// <param name="ct">Токен отмены.</param>
+    public async Task<IReadOnlyList<WorkEntry?>> FindConflictsAsync(IReadOnlyList<(EntryDraft Draft, long? ExcludeId)> items, bool accumulate, CancellationToken ct = default)
+    {
+        if (items.Count == 0)
+        {
+            return [];
+        }
+
+        var from = items.Min(d => d.Draft.Date).AddDays(-EntryValidator.NeighbourDays);
+        var to = items.Max(d => d.Draft.Date).AddDays(EntryValidator.NeighbourDays);
+        var existing = (await repository.GetRangeAsync(from, to, ct).ConfigureAwait(false)).ToList();
+        var result = new List<WorkEntry?>(items.Count);
+        long tempId = -1;
+        foreach (var (draft, excludeId) in items)
+        {
+            var conflict = EntryValidator.FindOverlap(draft, existing, excludeId);
+            result.Add(conflict);
+            if (accumulate && conflict is null)
+            {
+                existing.Add(draft.ToEntry(tempId--));
+            }
+        }
+
+        return result;
+    }
+
     /// <summary>Повторная проверка готового черновика (дата и комментарий; интервал валиден по построению).</summary>
-    private string? Revalidate(EntryDraft draft) => EntryRules.Validate(draft, Today);
+    public string? Revalidate(EntryDraft draft) => EntryRules.Validate(draft, Today);
 
     private async Task<List<string>> CheckOverlapsAsync(IReadOnlyList<(string Prefix, EntryDraft Draft)> drafts, long? excludeId, CancellationToken ct)
     {

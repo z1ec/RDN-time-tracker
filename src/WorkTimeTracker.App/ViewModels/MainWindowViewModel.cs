@@ -117,8 +117,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
         {
             var startup = await _initializer.InitializeAsync();
             Serilog.Log.Information(
-                "БД готова: {Path}, схема {From}→{To}, бэкап {Backup}, очищено записей {Purged}, привязок блокнота {Items}, листов {Sheets}",
-                _paths.DatabasePath, startup.Migration.FromVersion, startup.Migration.ToVersion, startup.AutoBackupPath ?? "—", startup.PurgedEntries, startup.PurgedNotepad.Items, startup.PurgedNotepad.Sheets);
+                "БД готова: {Path}, схема {From}→{To}, бэкап {Backup}, очищено записей {Purged}, строк блокнота {Lines}, листов {Sheets}",
+                _paths.DatabasePath, startup.Migration.FromVersion, startup.Migration.ToVersion, startup.AutoBackupPath ?? "—", startup.PurgedEntries, startup.PurgedNotepad.Lines, startup.PurgedNotepad.Sheets);
         }
         catch (DatabaseOpenException ex)
         {
